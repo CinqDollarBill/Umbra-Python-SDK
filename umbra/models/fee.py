@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Optional
 
 from ..utils.money import to_decimal
 
@@ -30,14 +29,14 @@ class FeeEntry:
     rebate_amount: Decimal
     net_fee: Decimal
     currency: str = "USDC"
-    market_slug: Optional[str] = None
-    seq: Optional[int] = None
-    ts: Optional[int] = None
-    timestamp: Optional[str] = None
+    market_slug: str | None = None
+    seq: int | None = None
+    ts: int | None = None
+    timestamp: str | None = None
     raw: dict = field(default_factory=dict, repr=False, compare=False)
 
     @classmethod
-    def from_api(cls, data: dict) -> "FeeEntry":
+    def from_api(cls, data: dict) -> FeeEntry:
         return cls(
             entry_id=data.get("entry_id", ""),
             trade_id=data.get("trade_id", ""),
@@ -83,7 +82,7 @@ class FeeSummary:
         return self.net_fees < 0
 
     @classmethod
-    def from_api(cls, data: dict) -> "FeeSummary":
+    def from_api(cls, data: dict) -> FeeSummary:
         return cls(
             user_id=data.get("user_id", ""),
             currency=data.get("currency", "USDC"),

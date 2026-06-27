@@ -9,7 +9,6 @@ same keyword arguments and build a :class:`ClientConfig` from them.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 from .exceptions import ConfigurationError
 
@@ -59,7 +58,7 @@ class ClientConfig:
     """
 
     api_url: str
-    ws_url: Optional[str] = None
+    ws_url: str | None = None
     timeout: float = DEFAULT_TIMEOUT
     retries: int = DEFAULT_RETRIES
     backoff_factor: float = 0.5

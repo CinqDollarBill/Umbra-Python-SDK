@@ -9,23 +9,55 @@ import pytest
 from umbra import NotFoundError
 
 MARKETS = [
-    {"market_id": "m1", "title": "Will BTC be up?", "status": "OPEN", "outcome": None,
-     "created_seq": 1, "created_ts": 111, "category": "crypto", "polymarket_slug": "btc-updown-5m",
-     "kalshi_slug": "KXBTC-1"},
-    {"market_id": "m2", "title": "Fed cut by Sept?", "status": "OPEN", "outcome": None,
-     "created_seq": 2, "created_ts": 112, "category": "politics", "polymarket_slug": "fed-cut"},
-    {"market_id": "m3", "title": "Lakers win?", "status": "SETTLED", "outcome": 1,
-     "created_seq": 3, "created_ts": 113, "category": "sports", "polymarket_slug": "lakers-win"},
+    {
+        "market_id": "m1",
+        "title": "Will BTC be up?",
+        "status": "OPEN",
+        "outcome": None,
+        "created_seq": 1,
+        "created_ts": 111,
+        "category": "crypto",
+        "polymarket_slug": "btc-updown-5m",
+        "kalshi_slug": "KXBTC-1",
+    },
+    {
+        "market_id": "m2",
+        "title": "Fed cut by Sept?",
+        "status": "OPEN",
+        "outcome": None,
+        "created_seq": 2,
+        "created_ts": 112,
+        "category": "politics",
+        "polymarket_slug": "fed-cut",
+    },
+    {
+        "market_id": "m3",
+        "title": "Lakers win?",
+        "status": "SETTLED",
+        "outcome": 1,
+        "created_seq": 3,
+        "created_ts": 113,
+        "category": "sports",
+        "polymarket_slug": "lakers-win",
+    },
 ]
 
 
 @pytest.fixture
 def client(make_client, server):
     server.json_route("GET", "/markets", MARKETS)
-    server.json_route("GET", "/markets/m1/nbbo", {
-        "market_id": "m1", "best_bid": "0.59", "best_bid_size": 500,
-        "best_ask": "0.61", "best_ask_size": 400, "last_trade_price": "0.60",
-    })
+    server.json_route(
+        "GET",
+        "/markets/m1/nbbo",
+        {
+            "market_id": "m1",
+            "best_bid": "0.59",
+            "best_bid_size": 500,
+            "best_ask": "0.61",
+            "best_ask_size": 400,
+            "last_trade_price": "0.60",
+        },
+    )
     return make_client(authed=False)
 
 

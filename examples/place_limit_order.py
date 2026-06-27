@@ -1,8 +1,8 @@
 """Place a limit order (BUY YES) and print the result.
 
-    export UMBRA_API_URL="http://localhost:8000"
-    export UMBRA_PRIVATE_KEY="0x..."
-    python examples/place_limit_order.py <market-slug-or-id>
+export UMBRA_API_URL="http://localhost:8000"
+export UMBRA_PRIVATE_KEY="0x..."
+python examples/place_limit_order.py <market-slug-or-id>
 """
 
 import os

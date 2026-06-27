@@ -8,8 +8,6 @@ perspective (side / taker-or-maker role / fee or rebate).
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 from ._http import AsyncHTTP
 from .auth import Authenticator
 from .exceptions import NotFoundError
@@ -30,7 +28,7 @@ class Trades:
         self._auth = auth
         self._markets = markets
 
-    async def get_trades(self, market: str, *, limit: int = 50) -> List[Trade]:
+    async def get_trades(self, market: str, *, limit: int = 50) -> list[Trade]:
         """Return recent public, anonymized prints for a market (newest first)."""
         market_id = await self._markets.resolve_market_id(market)
         capped = max(1, min(limit, _MAX_TAPE))
@@ -49,19 +47,20 @@ class Trades:
                 return t
         raise NotFoundError(f"trade {trade_id!r} not found in {market!r}", code="trade_not_found")
 
-    async def get_fills(
-        self, *, market: Optional[str] = None, limit: Optional[int] = 100
-    ) -> List[Fill]:
+    async def get_fills(self, *, market: str | None = None, limit: int | None = 100) -> list[Fill]:
         """Return the caller's own executions (newest first, auto-paginated)."""
         user_id = await self._auth.require_user_id()
         market_id = await self._markets.resolve_market_id(market) if market else None
 
         async def fetch(cursor: str, page_size: int):
             data = await self._http.request(
-                "GET", "/user/fills",
+                "GET",
+                "/user/fills",
                 params={
-                    "user_id": user_id, "market_id": market_id,
-                    "limit": page_size, "cursor": cursor,
+                    "user_id": user_id,
+                    "market_id": market_id,
+                    "limit": page_size,
+                    "cursor": cursor,
                 },
                 auth=True,
             )

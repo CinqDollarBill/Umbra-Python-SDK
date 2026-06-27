@@ -20,14 +20,18 @@ The venue has no in-place amend; :meth:`modify_order` is an explicit cancel/repl
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple, Union
 
 from ._http import AsyncHTTP
 from .auth import Authenticator
-from .exceptions import ConfigurationError, NotFoundError, OrderRejectedError, order_error_for_reason
+from .exceptions import (
+    ConfigurationError,
+    NotFoundError,
+    OrderRejectedError,
+    order_error_for_reason,
+)
 from .markets import Markets
 from .models.order import Order
-from .types.enums import Outcome, OrderType, Side, TimeInForce, resolve_side
+from .types.enums import OrderType, Outcome, Side, TimeInForce, resolve_side
 from .utils.money import to_optional_decimal
 from .utils.pagination import collect_pages
 
@@ -36,7 +40,7 @@ __all__ = ["Orders"]
 _ORDER_PREFIX = "ord-"
 _TERMINAL = {"FILLED", "CANCELED", "REJECTED"}
 
-PriceLike = Union[str, int, float, Decimal, None]
+PriceLike = str | int | float | Decimal | None
 
 
 def _coerce_enum(enum_cls, value):
@@ -49,15 +53,11 @@ def _coerce_enum(enum_cls, value):
 def market_id_from_order_id(order_id: str) -> str:
     """Extract ``market_id`` from ``ord-{market_id}-{seq}`` (market may contain hyphens)."""
     if not order_id or not order_id.startswith(_ORDER_PREFIX):
-        raise ConfigurationError(
-            f"cannot infer market from order_id {order_id!r}; pass market=..."
-        )
+        raise ConfigurationError(f"cannot infer market from order_id {order_id!r}; pass market=...")
     body = order_id[len(_ORDER_PREFIX) :]
     market_id, _, seq = body.rpartition("-")
     if not market_id or not seq:
-        raise ConfigurationError(
-            f"cannot infer market from order_id {order_id!r}; pass market=..."
-        )
+        raise ConfigurationError(f"cannot infer market from order_id {order_id!r}; pass market=...")
     return market_id
 
 
@@ -69,8 +69,8 @@ class Orders:
         self._auth = auth
         self._markets = markets
         # (user_id, client_order_id) -> order_id, and the reverse for echo-back.
-        self._coid_to_oid: Dict[Tuple[str, str], str] = {}
-        self._oid_to_coid: Dict[str, str] = {}
+        self._coid_to_oid: dict[tuple[str, str], str] = {}
+        self._oid_to_coid: dict[str, str] = {}
 
     # ------------------------------------------------------------------ #
     # Placement                                                          #
@@ -79,14 +79,14 @@ class Orders:
         self,
         *,
         market: str,
-        side: Union[str, Side],
+        side: str | Side,
         size: int,
-        outcome: Optional[Union[str, Outcome]] = None,
+        outcome: str | Outcome | None = None,
         price: PriceLike = None,
-        order_type: Union[str, OrderType] = OrderType.LIMIT,
-        time_in_force: Union[str, TimeInForce] = TimeInForce.GTC,
+        order_type: str | OrderType = OrderType.LIMIT,
+        time_in_force: str | TimeInForce = TimeInForce.GTC,
         post_only: bool = False,
-        client_order_id: Optional[str] = None,
+        client_order_id: str | None = None,
     ) -> Order:
         """Place an order on UMBRA's book.
 
@@ -137,7 +137,10 @@ class Orders:
             "price": float(dprice) if dprice is not None else None,
         }
         result = await self._http.request(
-            "POST", "/orders", json=_drop_none(body), auth=True,
+            "POST",
+            "/orders",
+            json=_drop_none(body),
+            auth=True,
             idempotent=bool(client_order_id),
         )
 
@@ -170,35 +173,46 @@ class Orders:
         self,
         *,
         market: str,
-        side: Union[str, Side],
+        side: str | Side,
         size: int,
         price: PriceLike,
-        outcome: Optional[Union[str, Outcome]] = None,
-        time_in_force: Union[str, TimeInForce] = TimeInForce.GTC,
+        outcome: str | Outcome | None = None,
+        time_in_force: str | TimeInForce = TimeInForce.GTC,
         post_only: bool = False,
-        client_order_id: Optional[str] = None,
+        client_order_id: str | None = None,
     ) -> Order:
         """Convenience wrapper for a ``LIMIT`` order."""
         return await self.place_order(
-            market=market, side=side, size=size, outcome=outcome, price=price,
-            order_type=OrderType.LIMIT, time_in_force=time_in_force,
-            post_only=post_only, client_order_id=client_order_id,
+            market=market,
+            side=side,
+            size=size,
+            outcome=outcome,
+            price=price,
+            order_type=OrderType.LIMIT,
+            time_in_force=time_in_force,
+            post_only=post_only,
+            client_order_id=client_order_id,
         )
 
     async def place_market_order(
         self,
         *,
         market: str,
-        side: Union[str, Side],
+        side: str | Side,
         size: int,
-        outcome: Optional[Union[str, Outcome]] = None,
-        time_in_force: Union[str, TimeInForce] = TimeInForce.IOC,
-        client_order_id: Optional[str] = None,
+        outcome: str | Outcome | None = None,
+        time_in_force: str | TimeInForce = TimeInForce.IOC,
+        client_order_id: str | None = None,
     ) -> Order:
         """Convenience wrapper for a ``MARKET`` order (defaults to IOC)."""
         return await self.place_order(
-            market=market, side=side, size=size, outcome=outcome, price=None,
-            order_type=OrderType.MARKET, time_in_force=time_in_force,
+            market=market,
+            side=side,
+            size=size,
+            outcome=outcome,
+            price=None,
+            order_type=OrderType.MARKET,
+            time_in_force=time_in_force,
             client_order_id=client_order_id,
         )
 
@@ -206,12 +220,12 @@ class Orders:
         self,
         *,
         market: str,
-        side: Union[str, Side],
+        side: str | Side,
         size: int,
-        outcome: Optional[Union[str, Outcome]] = None,
+        outcome: str | Outcome | None = None,
         price: PriceLike = None,
-        order_type: Union[str, OrderType] = OrderType.LIMIT,
-        time_in_force: Union[str, TimeInForce] = TimeInForce.GTC,
+        order_type: str | OrderType = OrderType.LIMIT,
+        time_in_force: str | TimeInForce = TimeInForce.GTC,
         post_only: bool = False,
     ) -> dict:
         """Dry-run the buying-power check for an order without placing it.
@@ -233,12 +247,14 @@ class Orders:
             "post_only": post_only,
             "price": float(dprice) if dprice is not None else None,
         }
-        return await self._http.request("POST", "/orders/validate", json=_drop_none(body), auth=True)
+        return await self._http.request(
+            "POST", "/orders/validate", json=_drop_none(body), auth=True
+        )
 
     # ------------------------------------------------------------------ #
     # Cancellation                                                       #
     # ------------------------------------------------------------------ #
-    async def cancel_order(self, order_id: str, *, market: Optional[str] = None) -> Order:
+    async def cancel_order(self, order_id: str, *, market: str | None = None) -> Order:
         """Cancel one resting order by engine id.
 
         ``market`` is inferred from the order id when omitted. Raises
@@ -252,14 +268,17 @@ class Orders:
         )
         user_id = await self._user_id()
         result = await self._http.request(
-            "POST", "/cancel_order",
+            "POST",
+            "/cancel_order",
             json={"user_id": user_id, "market_id": market_id, "order_id": order_id},
             auth=True,
         )
         if result.get("status") == "REJECTED":
             reason = result.get("reason")
             raise OrderRejectedError(
-                _reason_message(reason, None), reason=reason, body=result,
+                _reason_message(reason, None),
+                reason=reason,
+                body=result,
             )
         return Order(
             order_id=result.get("order_id", order_id),
@@ -271,7 +290,7 @@ class Orders:
         )
 
     async def cancel_order_by_client_id(
-        self, client_order_id: str, *, market: Optional[str] = None
+        self, client_order_id: str, *, market: str | None = None
     ) -> Order:
         """Cancel an order previously placed with this ``client_order_id``."""
         user_id = await self._user_id()
@@ -283,10 +302,10 @@ class Orders:
             )
         return await self.cancel_order(order_id, market=market)
 
-    async def cancel_all(self, *, market: Optional[str] = None) -> List[Order]:
+    async def cancel_all(self, *, market: str | None = None) -> list[Order]:
         """Cancel every open order (optionally scoped to one market); return the canceled set."""
         open_orders = await self.get_open_orders(market=market, limit=None)
-        canceled: List[Order] = []
+        canceled: list[Order] = []
         for o in open_orders:
             try:
                 canceled.append(await self.cancel_order(o.order_id, market=o.market_id))
@@ -300,11 +319,11 @@ class Orders:
         order_id: str,
         *,
         price: PriceLike = None,
-        size: Optional[int] = None,
-        time_in_force: Optional[Union[str, TimeInForce]] = None,
-        post_only: Optional[bool] = None,
-        client_order_id: Optional[str] = None,
-        market: Optional[str] = None,
+        size: int | None = None,
+        time_in_force: str | TimeInForce | None = None,
+        post_only: bool | None = None,
+        client_order_id: str | None = None,
+        market: str | None = None,
     ) -> Order:
         """Modify an order via cancel/replace and return the newly placed order.
 
@@ -342,23 +361,23 @@ class Orders:
     async def get_orders(
         self,
         *,
-        market: Optional[str] = None,
+        market: str | None = None,
         open_only: bool = False,
-        limit: Optional[int] = 100,
-    ) -> List[Order]:
+        limit: int | None = 100,
+    ) -> list[Order]:
         """List the caller's orders (auto-paginated). ``limit=None`` fetches all pages."""
         market_id = await self._markets.resolve_market_id(market) if market else None
         return await self._fetch_orders(market_id=market_id, open_only=open_only, limit=limit)
 
     async def get_open_orders(
-        self, *, market: Optional[str] = None, limit: Optional[int] = 100
-    ) -> List[Order]:
+        self, *, market: str | None = None, limit: int | None = 100
+    ) -> list[Order]:
         """List only the caller's resting (open) orders."""
         return await self.get_orders(market=market, open_only=True, limit=limit)
 
     async def get_order_history(
-        self, *, market: Optional[str] = None, limit: Optional[int] = 100
-    ) -> List[Order]:
+        self, *, market: str | None = None, limit: int | None = 100
+    ) -> list[Order]:
         """List the caller's closed (filled/canceled/rejected) orders."""
         orders = await self.get_orders(market=market, open_only=False, limit=None)
         history = [o for o in orders if o.status in _TERMINAL]
@@ -368,16 +387,20 @@ class Orders:
     # Internals                                                          #
     # ------------------------------------------------------------------ #
     async def _fetch_orders(
-        self, *, market_id: Optional[str], open_only: bool, limit: Optional[int]
-    ) -> List[Order]:
+        self, *, market_id: str | None, open_only: bool, limit: int | None
+    ) -> list[Order]:
         user_id = await self._user_id()
 
         async def fetch(cursor: str, page_size: int):
             data = await self._http.request(
-                "GET", "/user/orders",
+                "GET",
+                "/user/orders",
                 params={
-                    "user_id": user_id, "market_id": market_id,
-                    "open_only": open_only, "limit": page_size, "cursor": cursor,
+                    "user_id": user_id,
+                    "market_id": market_id,
+                    "open_only": open_only,
+                    "limit": page_size,
+                    "cursor": cursor,
                 },
                 auth=True,
             )
@@ -403,7 +426,7 @@ def _drop_none(d: dict) -> dict:
     return {k: v for k, v in d.items() if v is not None}
 
 
-def _reason_message(reason: Optional[str], validation: Optional[dict]) -> str:
+def _reason_message(reason: str | None, validation: dict | None) -> str:
     base = {
         "INSUFFICIENT_FUNDS": "insufficient available balance to place this order",
         "MARKET_NOT_OPEN": "market is not open for trading",

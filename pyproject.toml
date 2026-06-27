@@ -43,8 +43,8 @@ wallet = ["eth-account>=0.10"]
 dev = [
     "pytest>=7",
     "eth-account>=0.10",
-    "black>=23",
-    "ruff>=0.1",
+    "black==26.5.1",
+    "ruff==0.15.20",
     "mypy>=1.5",
 ]
 

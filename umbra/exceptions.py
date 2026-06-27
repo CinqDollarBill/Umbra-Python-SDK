@@ -21,7 +21,8 @@ Mapping summary (HTTP status / context -> exception):
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 __all__ = [
     "UmbraError",
@@ -66,11 +67,11 @@ class APIError(UmbraError):
         self,
         message: str,
         *,
-        status_code: Optional[int] = None,
-        code: Optional[str] = None,
+        status_code: int | None = None,
+        code: str | None = None,
         body: Any = None,
-        request_method: Optional[str] = None,
-        request_path: Optional[str] = None,
+        request_method: str | None = None,
+        request_path: str | None = None,
     ) -> None:
         super().__init__(message)
         self.message = message
@@ -97,7 +98,9 @@ class AuthenticationError(APIError):
     """Authentication failed or is required (HTTP 401, or a local auth/SIWE failure)."""
 
 
-class PermissionError(APIError):  # noqa: A001 - intentional domain name; shadows builtin only in this module
+class PermissionError(
+    APIError
+):  # noqa: A001 - intentional domain name; shadows builtin only in this module
     """The authenticated principal is not allowed to perform the action (HTTP 403)."""
 
 
@@ -123,7 +126,7 @@ class RateLimitError(APIError):
     ``retry_after`` is the server-suggested cool-off in seconds when provided.
     """
 
-    def __init__(self, message: str, *, retry_after: Optional[float] = None, **kwargs: Any) -> None:
+    def __init__(self, message: str, *, retry_after: float | None = None, **kwargs: Any) -> None:
         super().__init__(message, **kwargs)
         self.retry_after = retry_after
 
@@ -131,7 +134,7 @@ class RateLimitError(APIError):
 class NetworkError(UmbraError):
     """A transport-level failure (connection error, timeout) after retries were exhausted."""
 
-    def __init__(self, message: str, *, cause: Optional[BaseException] = None) -> None:
+    def __init__(self, message: str, *, cause: BaseException | None = None) -> None:
         super().__init__(message)
         self.__cause__ = cause
 
@@ -148,7 +151,7 @@ class OrderRejectedError(APIError):
         self,
         message: str,
         *,
-        reason: Optional[str] = None,
+        reason: str | None = None,
         validation: Any = None,
         **kwargs: Any,
     ) -> None:
@@ -172,15 +175,19 @@ class WebSocketError(UmbraError):
 # Engine reason codes that mean "market not open for trading".
 _MARKET_CLOSED_REASONS = {"MARKET_NOT_OPEN", "UNKNOWN_MARKET", "MARKET_CLOSED", "USER_SUSPENDED"}
 # Engine reason codes that mean "not enough buying power".
-_INSUFFICIENT_FUNDS_REASONS = {"INSUFFICIENT_FUNDS", "INSUFFICIENT_BALANCE", "INSUFFICIENT_BUYING_POWER"}
+_INSUFFICIENT_FUNDS_REASONS = {
+    "INSUFFICIENT_FUNDS",
+    "INSUFFICIENT_BALANCE",
+    "INSUFFICIENT_BUYING_POWER",
+}
 
 
 def order_error_for_reason(
-    reason: Optional[str],
+    reason: str | None,
     message: str,
     *,
     validation: Any = None,
-    status_code: Optional[int] = None,
+    status_code: int | None = None,
     body: Any = None,
 ) -> OrderRejectedError:
     """Pick the most specific order exception for an engine ``reason`` code."""

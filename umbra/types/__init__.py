@@ -11,9 +11,9 @@ from __future__ import annotations
 from .enums import (
     Category,
     MarketStatus,
-    Outcome,
     OrderStatus,
     OrderType,
+    Outcome,
     Side,
     TimeInForce,
     resolve_side,

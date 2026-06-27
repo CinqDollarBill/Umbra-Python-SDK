@@ -8,11 +8,10 @@ honors that: every monetary field on a model is a :class:`decimal.Decimal`, pars
 from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
-from typing import Optional, Union
 
 __all__ = ["to_decimal", "to_optional_decimal"]
 
-Number = Union[str, int, float, Decimal, None]
+Number = str | int | float | Decimal | None
 
 
 def to_decimal(value: Number, default: Decimal = Decimal("0")) -> Decimal:
@@ -32,7 +31,7 @@ def to_decimal(value: Number, default: Decimal = Decimal("0")) -> Decimal:
         return default
 
 
-def to_optional_decimal(value: Number) -> Optional[Decimal]:
+def to_optional_decimal(value: Number) -> Decimal | None:
     """Parse a money/price value into a :class:`Decimal`, or ``None`` if absent.
 
     Distinguishes "no quote" (``None``) from a real zero — used for nullable price fields

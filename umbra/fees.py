@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 from ._http import AsyncHTTP
 from .auth import Authenticator
 from .markets import Markets
@@ -24,14 +22,14 @@ class Fees:
     async def get_fee_history(
         self,
         *,
-        market: Optional[str] = None,
-        role: Optional[str] = None,
-        side: Optional[str] = None,
-        start_ts: Optional[int] = None,
-        end_ts: Optional[int] = None,
+        market: str | None = None,
+        role: str | None = None,
+        side: str | None = None,
+        start_ts: int | None = None,
+        end_ts: int | None = None,
         sort: str = "-ts",
-        limit: Optional[int] = 100,
-    ) -> List[FeeEntry]:
+        limit: int | None = 100,
+    ) -> list[FeeEntry]:
         """Return the caller's fee/rebate history (filtered, sorted, auto-paginated).
 
         ``role`` is ``TAKER``/``MAKER``; ``side`` is ``BUY``/``SELL`` (YES terms); ``sort``
@@ -42,13 +40,18 @@ class Fees:
 
         async def fetch(cursor: str, page_size: int):
             data = await self._http.request(
-                "GET", "/user/fees",
+                "GET",
+                "/user/fees",
                 params={
-                    "user_id": user_id, "market_id": market_id,
+                    "user_id": user_id,
+                    "market_id": market_id,
                     "role": role.upper() if role else None,
                     "side": side.upper() if side else None,
-                    "start_ts": start_ts, "end_ts": end_ts,
-                    "sort": sort, "limit": page_size, "cursor": cursor,
+                    "start_ts": start_ts,
+                    "end_ts": end_ts,
+                    "sort": sort,
+                    "limit": page_size,
+                    "cursor": cursor,
                 },
                 auth=True,
             )
@@ -59,28 +62,31 @@ class Fees:
     async def get_fee_summary(
         self,
         *,
-        market: Optional[str] = None,
-        role: Optional[str] = None,
-        side: Optional[str] = None,
-        start_ts: Optional[int] = None,
-        end_ts: Optional[int] = None,
+        market: str | None = None,
+        role: str | None = None,
+        side: str | None = None,
+        start_ts: int | None = None,
+        end_ts: int | None = None,
     ) -> FeeSummary:
         """Return aggregate fee/rebate totals for the caller (optionally filtered)."""
         user_id = await self._auth.require_user_id()
         market_id = await self._markets.resolve_market_id(market) if market else None
         data = await self._http.request(
-            "GET", "/user/fees/summary",
+            "GET",
+            "/user/fees/summary",
             params={
-                "user_id": user_id, "market_id": market_id,
+                "user_id": user_id,
+                "market_id": market_id,
                 "role": role.upper() if role else None,
                 "side": side.upper() if side else None,
-                "start_ts": start_ts, "end_ts": end_ts,
+                "start_ts": start_ts,
+                "end_ts": end_ts,
             },
             auth=True,
         )
         return FeeSummary.from_api(data)
 
-    async def get_trade_fees(self, trade_id: str) -> List[FeeEntry]:
+    async def get_trade_fees(self, trade_id: str) -> list[FeeEntry]:
         """Return the caller's full fee/rebate breakdown for one trade (2 rows on a self-trade)."""
         user_id = await self._auth.require_user_id()
         data = await self._http.request(

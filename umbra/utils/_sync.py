@@ -15,7 +15,8 @@ from __future__ import annotations
 
 import asyncio
 import threading
-from typing import Any, Awaitable, Coroutine, TypeVar
+from collections.abc import Awaitable, Coroutine
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 
@@ -27,9 +28,7 @@ class LoopRunner:
 
     def __init__(self) -> None:
         self._loop = asyncio.new_event_loop()
-        self._thread = threading.Thread(
-            target=self._run_loop, name="umbra-sdk-loop", daemon=True
-        )
+        self._thread = threading.Thread(target=self._run_loop, name="umbra-sdk-loop", daemon=True)
         self._thread.start()
         self._closed = False
 
@@ -42,7 +41,7 @@ class LoopRunner:
         """The background event loop (used to schedule WebSocket tasks)."""
         return self._loop
 
-    def run(self, coro: "Coroutine[Any, Any, T] | Awaitable[T]", timeout: float | None = None) -> T:
+    def run(self, coro: Coroutine[Any, Any, T] | Awaitable[T], timeout: float | None = None) -> T:
         """Run ``coro`` on the background loop and block until it returns."""
         if self._closed:
             raise RuntimeError("client is closed")

@@ -2,15 +2,22 @@
 
 from __future__ import annotations
 
-import json
-
 import httpx
 import pytest
 
 from umbra import APIError, NetworkError, NotFoundError, ValidationError
 
-MARKETS = [{"market_id": "m1", "title": "BTC", "status": "OPEN", "created_seq": 1,
-            "created_ts": 1, "category": "crypto", "polymarket_slug": "btc"}]
+MARKETS = [
+    {
+        "market_id": "m1",
+        "title": "BTC",
+        "status": "OPEN",
+        "created_seq": 1,
+        "created_ts": 1,
+        "category": "crypto",
+        "polymarket_slug": "btc",
+    }
+]
 
 
 def test_get_retries_on_5xx_then_succeeds(make_client, server):
@@ -85,9 +92,18 @@ def test_validation_error_surfaces_detail(make_client, server):
 
     @server.route("GET", "/markets")
     def _m(req):
-        return httpx.Response(422, json={"detail": [
-            {"loc": ["query", "limit"], "msg": "value is not a valid integer", "type": "int"}
-        ]})
+        return httpx.Response(
+            422,
+            json={
+                "detail": [
+                    {
+                        "loc": ["query", "limit"],
+                        "msg": "value is not a valid integer",
+                        "type": "int",
+                    }
+                ]
+            },
+        )
 
     with pytest.raises(ValidationError) as exc:
         client.get_markets()
@@ -118,6 +134,7 @@ def test_post_with_client_order_id_is_retried_on_5xx(make_client, server):
         return httpx.Response(503, json={"detail": "down"})
 
     with pytest.raises(APIError):
-        client.place_limit_order(market="m1", side="BUY_YES", price="0.5", size=10,
-                                 client_order_id="idem-1")
+        client.place_limit_order(
+            market="m1", side="BUY_YES", price="0.5", size=10, client_order_id="idem-1"
+        )
     assert server.count("POST", "/orders") == 3  # idempotency key -> safe to retry

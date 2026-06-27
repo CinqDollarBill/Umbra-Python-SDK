@@ -1,8 +1,8 @@
 """Cancel a single order, or cancel everything resting.
 
-    export UMBRA_PRIVATE_KEY="0x..."
-    python examples/cancel_order.py <order-id>      # cancel one
-    python examples/cancel_order.py --all           # cancel all open orders
+export UMBRA_PRIVATE_KEY="0x..."
+python examples/cancel_order.py <order-id>      # cancel one
+python examples/cancel_order.py --all           # cancel all open orders
 """
 
 import os

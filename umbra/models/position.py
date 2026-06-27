@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Optional
 
 from ..utils.money import to_decimal, to_optional_decimal
 
@@ -24,8 +23,8 @@ class Position:
     net_qty: int
     avg_entry_price: Decimal
     realized_pnl: Decimal
-    unrealized_pnl: Optional[Decimal] = None
-    mark_price: Optional[Decimal] = None
+    unrealized_pnl: Decimal | None = None
+    mark_price: Decimal | None = None
     fees_paid: Decimal = Decimal("0")
     rebates_received: Decimal = Decimal("0")
     raw: dict = field(default_factory=dict, repr=False, compare=False)
@@ -36,7 +35,7 @@ class Position:
         return abs(self.net_qty)
 
     @property
-    def outcome(self) -> Optional[str]:
+    def outcome(self) -> str | None:
         """``YES`` if long YES, ``NO`` if long NO, ``None`` if flat."""
         if self.net_qty > 0:
             return "YES"
@@ -50,14 +49,14 @@ class Position:
         return self.avg_entry_price
 
     @property
-    def market_value(self) -> Optional[Decimal]:
+    def market_value(self) -> Decimal | None:
         """Current mark-to-market value (``mark_price * net_qty``), or ``None`` without a mark."""
         if self.mark_price is None:
             return None
         return self.mark_price * Decimal(self.net_qty)
 
     @classmethod
-    def from_api(cls, data: dict) -> "Position":
+    def from_api(cls, data: dict) -> Position:
         return cls(
             market_id=data["market_id"],
             net_qty=int(data.get("net_qty") or 0),

@@ -26,8 +26,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
+from typing import Any
 
 import websockets
 
@@ -38,7 +39,7 @@ from .markets import Markets
 
 logger = logging.getLogger("umbra.ws")
 
-Handler = Callable[[Any], Union[None, Awaitable[None]]]
+Handler = Callable[[Any], None | Awaitable[None]]
 
 # Read timeout: the server heartbeats every ~30s, so silence past this means a dead socket.
 _READ_TIMEOUT = 75.0
@@ -53,7 +54,7 @@ class Subscription:
 
     channel: str
     url: str
-    _feed: "_Feed"
+    _feed: _Feed
 
     async def unsubscribe(self) -> None:
         """Close this feed connection."""
@@ -68,7 +69,7 @@ class _Feed:
     dispatch: Callable[[dict], Awaitable[None]]
     config: ClientConfig
     name: str
-    _task: Optional[asyncio.Task] = None
+    _task: asyncio.Task | None = None
     _stopped: bool = False
     _fatal: bool = False
 
@@ -99,12 +100,14 @@ class _Feed:
             except Exception as exc:  # noqa: BLE001 - any failure -> backoff + reconnect
                 if self._stopped or self._fatal:
                     break
-                delay = min(
-                    self.config.backoff_factor * (2 ** attempt), self.config.backoff_max
-                )
+                delay = min(self.config.backoff_factor * (2**attempt), self.config.backoff_max)
                 if self.config.debug:
-                    logger.debug("umbra.ws %s disconnected (%s); reconnecting in %.1fs",
-                                 self.name, exc, delay)
+                    logger.debug(
+                        "umbra.ws %s disconnected (%s); reconnecting in %.1fs",
+                        self.name,
+                        exc,
+                        delay,
+                    )
                 attempt += 1
                 try:
                     await asyncio.sleep(delay)
@@ -136,18 +139,18 @@ class _Feed:
 class AsyncWebSocketClient:
     """Async manager for UMBRA's real-time feeds."""
 
-    def __init__(self, config: ClientConfig, auth: Optional[Authenticator], markets: Markets) -> None:
+    def __init__(self, config: ClientConfig, auth: Authenticator | None, markets: Markets) -> None:
         self._config = config
         self._auth = auth
         self._markets = markets
-        self._feeds: List[_Feed] = []
-        self._handlers: Dict[str, List[Handler]] = {}
-        self._queue: "asyncio.Queue[dict]" = asyncio.Queue(maxsize=_QUEUE_MAX)
+        self._feeds: list[_Feed] = []
+        self._handlers: dict[str, list[Handler]] = {}
+        self._queue: asyncio.Queue[dict] = asyncio.Queue(maxsize=_QUEUE_MAX)
 
     # ------------------------------------------------------------------ #
     # Lifecycle                                                          #
     # ------------------------------------------------------------------ #
-    async def connect(self) -> "AsyncWebSocketClient":
+    async def connect(self) -> AsyncWebSocketClient:
         """No-op connect for API symmetry — feeds connect lazily on subscribe."""
         return self
 
@@ -173,19 +176,19 @@ class AsyncWebSocketClient:
     # Public feeds                                                       #
     # ------------------------------------------------------------------ #
     async def subscribe_nbbo(
-        self, market: Optional[str] = None, handler: Optional[Handler] = None
+        self, market: str | None = None, handler: Handler | None = None
     ) -> Subscription:
         """Subscribe to NBBO updates for one market (slug/id) or all markets."""
         return await self._subscribe_public("nbbo", market, handler)
 
     async def subscribe_trades(
-        self, market: Optional[str] = None, handler: Optional[Handler] = None
+        self, market: str | None = None, handler: Handler | None = None
     ) -> Subscription:
         """Subscribe to the anonymized trade tape for one market or all markets."""
         return await self._subscribe_public("trades", market, handler, channel="trade")
 
     async def subscribe_status(
-        self, market: Optional[str] = None, handler: Optional[Handler] = None
+        self, market: str | None = None, handler: Handler | None = None
     ) -> Subscription:
         """Subscribe to market lifecycle-status changes for one market or all markets."""
         return await self._subscribe_public("status", market, handler, channel="market_status")
@@ -193,10 +196,10 @@ class AsyncWebSocketClient:
     async def _subscribe_public(
         self,
         path: str,
-        market: Optional[str],
-        handler: Optional[Handler],
+        market: str | None,
+        handler: Handler | None,
         *,
-        channel: Optional[str] = None,
+        channel: str | None = None,
     ) -> Subscription:
         channel = channel or path
         if handler is not None:
@@ -215,25 +218,25 @@ class AsyncWebSocketClient:
     # ------------------------------------------------------------------ #
     # Private user feed                                                  #
     # ------------------------------------------------------------------ #
-    async def subscribe_user(self, handler: Optional[Handler] = None) -> Subscription:
+    async def subscribe_user(self, handler: Handler | None = None) -> Subscription:
         """Subscribe to the private feed (order + position + balance frames)."""
         if handler is not None:
             self.on("user", handler)
         return await self._ensure_user_feed()
 
-    async def subscribe_orders(self, handler: Optional[Handler] = None) -> Subscription:
+    async def subscribe_orders(self, handler: Handler | None = None) -> Subscription:
         """Subscribe to live order updates on the private feed."""
         if handler is not None:
             self.on("order", handler)
         return await self._ensure_user_feed()
 
-    async def subscribe_positions(self, handler: Optional[Handler] = None) -> Subscription:
+    async def subscribe_positions(self, handler: Handler | None = None) -> Subscription:
         """Subscribe to live position updates on the private feed."""
         if handler is not None:
             self.on("position", handler)
         return await self._ensure_user_feed()
 
-    async def subscribe_balance(self, handler: Optional[Handler] = None) -> Subscription:
+    async def subscribe_balance(self, handler: Handler | None = None) -> Subscription:
         """Subscribe to live balance updates on the private feed."""
         if handler is not None:
             self.on("balance", handler)
@@ -261,7 +264,9 @@ class AsyncWebSocketClient:
     # ------------------------------------------------------------------ #
     # Dispatch + feed bookkeeping                                        #
     # ------------------------------------------------------------------ #
-    def _start_feed(self, name: str, url: str, factory: Callable[[], Awaitable[str]]) -> Subscription:
+    def _start_feed(
+        self, name: str, url: str, factory: Callable[[], Awaitable[str]]
+    ) -> Subscription:
         feed = _Feed(url_factory=factory, dispatch=self._dispatch, config=self._config, name=name)
         self._feeds.append(feed)
         feed.start()
@@ -290,7 +295,7 @@ class AsyncWebSocketClient:
             # Lifecycle frames (error/heartbeat) carry no ``data`` — hand over the whole frame.
             await self._emit(ftype, data if data is not None else frame)
 
-    async def _emit(self, event: Optional[str], payload: Any) -> None:
+    async def _emit(self, event: str | None, payload: Any) -> None:
         if not event:
             return
         for handler in self._handlers.get(event, []):
@@ -314,32 +319,32 @@ class WebSocketClient:
         self._ws = async_ws
         self._run = run
 
-    def connect(self) -> "WebSocketClient":
+    def connect(self) -> WebSocketClient:
         self._run(self._ws.connect())
         return self
 
     def on(self, event: str, handler: Handler) -> None:
         self._ws.on(event, handler)
 
-    def subscribe_nbbo(self, market: Optional[str] = None, handler: Optional[Handler] = None):
+    def subscribe_nbbo(self, market: str | None = None, handler: Handler | None = None):
         return _SyncSub(self._run(self._ws.subscribe_nbbo(market, handler)), self._run)
 
-    def subscribe_trades(self, market: Optional[str] = None, handler: Optional[Handler] = None):
+    def subscribe_trades(self, market: str | None = None, handler: Handler | None = None):
         return _SyncSub(self._run(self._ws.subscribe_trades(market, handler)), self._run)
 
-    def subscribe_status(self, market: Optional[str] = None, handler: Optional[Handler] = None):
+    def subscribe_status(self, market: str | None = None, handler: Handler | None = None):
         return _SyncSub(self._run(self._ws.subscribe_status(market, handler)), self._run)
 
-    def subscribe_user(self, handler: Optional[Handler] = None):
+    def subscribe_user(self, handler: Handler | None = None):
         return _SyncSub(self._run(self._ws.subscribe_user(handler)), self._run)
 
-    def subscribe_orders(self, handler: Optional[Handler] = None):
+    def subscribe_orders(self, handler: Handler | None = None):
         return _SyncSub(self._run(self._ws.subscribe_orders(handler)), self._run)
 
-    def subscribe_positions(self, handler: Optional[Handler] = None):
+    def subscribe_positions(self, handler: Handler | None = None):
         return _SyncSub(self._run(self._ws.subscribe_positions(handler)), self._run)
 
-    def subscribe_balance(self, handler: Optional[Handler] = None):
+    def subscribe_balance(self, handler: Handler | None = None):
         return _SyncSub(self._run(self._ws.subscribe_balance(handler)), self._run)
 
     def listen(self):

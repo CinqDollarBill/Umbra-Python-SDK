@@ -18,7 +18,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
@@ -49,7 +49,7 @@ class AsyncHTTP:
         self,
         config: ClientConfig,
         *,
-        transport: Optional[httpx.AsyncBaseTransport] = None,
+        transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         self._config = config
         headers = {
@@ -64,7 +64,7 @@ class AsyncHTTP:
             transport=transport,
         )
         # Set by the owning client once the Authenticator is constructed (avoids a cycle).
-        self.auth: Optional["Authenticator"] = None
+        self.auth: Authenticator | None = None
 
     # ------------------------------------------------------------------ #
     # Lifecycle                                                          #
@@ -80,10 +80,10 @@ class AsyncHTTP:
         method: str,
         path: str,
         *,
-        params: Optional[dict] = None,
+        params: dict | None = None,
         json: Any = None,
         auth: bool = False,
-        idempotent: Optional[bool] = None,
+        idempotent: bool | None = None,
         _reauthed: bool = False,
     ) -> Any:
         """Perform an HTTP request and return the decoded JSON body.
@@ -121,16 +121,18 @@ class AsyncHTTP:
                     await self._sleep_backoff(attempt)
                     attempt += 1
                     continue
-                raise NetworkError(f"could not connect to {self._config.api_url}", cause=exc)
+                raise NetworkError(
+                    f"could not connect to {self._config.api_url}", cause=exc
+                ) from exc
             except httpx.TimeoutException as exc:
                 # Response timed out — only safe to retry idempotent calls.
                 if idempotent and attempt < self._config.retries:
                     await self._sleep_backoff(attempt)
                     attempt += 1
                     continue
-                raise NetworkError(f"request to {path} timed out", cause=exc)
+                raise NetworkError(f"request to {path} timed out", cause=exc) from exc
             except httpx.HTTPError as exc:
-                raise NetworkError(f"transport error calling {path}: {exc}", cause=exc)
+                raise NetworkError(f"transport error calling {path}: {exc}", cause=exc) from exc
 
             status = response.status_code
             self._log_response(method, path, status)
@@ -142,8 +144,13 @@ class AsyncHTTP:
             if status == 401 and auth and not _reauthed and self.auth is not None:
                 self.auth.invalidate()
                 return await self.request(
-                    method, path, params=params, json=json, auth=auth,
-                    idempotent=idempotent, _reauthed=True,
+                    method,
+                    path,
+                    params=params,
+                    json=json,
+                    auth=auth,
+                    idempotent=idempotent,
+                    _reauthed=True,
                 )
 
             if status == 429:
@@ -178,7 +185,9 @@ class AsyncHTTP:
         status = response.status_code
         body = _safe_body(response)
         code, message, detail = _extract_error(body, status)
-        kw = dict(status_code=status, code=code, body=body, request_method=method, request_path=path)
+        kw = dict(
+            status_code=status, code=code, body=body, request_method=method, request_path=path
+        )
         if status == 401:
             return AuthenticationError(message, **kw)  # type: ignore[arg-type]
         if status == 403:
@@ -196,11 +205,11 @@ class AsyncHTTP:
     # ------------------------------------------------------------------ #
     # Backoff + logging                                                  #
     # ------------------------------------------------------------------ #
-    async def _sleep_backoff(self, attempt: int, *, override: Optional[float] = None) -> None:
+    async def _sleep_backoff(self, attempt: int, *, override: float | None = None) -> None:
         if override is not None:
             delay = min(override, self._config.backoff_max)
         else:
-            base = self._config.backoff_factor * (2 ** attempt)
+            base = self._config.backoff_factor * (2**attempt)
             delay = min(base, self._config.backoff_max)
             delay += random.uniform(0, self._config.backoff_factor)  # jitter
         if self._config.debug:
@@ -222,7 +231,7 @@ class AsyncHTTP:
 # --------------------------------------------------------------------------- #
 # Module-level helpers.                                                        #
 # --------------------------------------------------------------------------- #
-def _drop_none(params: Optional[dict]) -> Optional[dict]:
+def _drop_none(params: dict | None) -> dict | None:
     """Strip ``None`` values so they aren't serialized as the string ``"None"``."""
     if not params:
         return None
@@ -245,13 +254,13 @@ def _safe_body(response: httpx.Response) -> Any:
         return response.text
 
 
-def _extract_error(body: Any, status: int) -> tuple[Optional[str], str, Any]:
+def _extract_error(body: Any, status: int) -> tuple[str | None, str, Any]:
     """Return ``(code, message, detail)`` from a non-2xx body across the API's shapes.
 
     Handles FastAPI ``{"detail": ...}`` (string or validation list), the ``/v1`` envelope
     ``{"error": {"code", "message"}}``, and the sanitized 500 ``{"error": {...}}``.
     """
-    code: Optional[str] = None
+    code: str | None = None
     detail: Any = None
     message = f"HTTP {status}"
     if isinstance(body, dict):
@@ -275,7 +284,7 @@ def _extract_error(body: Any, status: int) -> tuple[Optional[str], str, Any]:
     return code, message, detail
 
 
-def _retry_after_seconds(response: httpx.Response) -> Optional[float]:
+def _retry_after_seconds(response: httpx.Response) -> float | None:
     raw = response.headers.get("retry-after")
     if not raw:
         return None

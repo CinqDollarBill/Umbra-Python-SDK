@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Optional
 
 from ..utils.money import to_decimal
 
@@ -29,7 +28,7 @@ class WalletAssets:
     raw: dict = field(default_factory=dict, repr=False, compare=False)
 
     @classmethod
-    def from_api(cls, data: dict) -> "WalletAssets":
+    def from_api(cls, data: dict) -> WalletAssets:
         return cls(
             user_id=data.get("user_id", ""),
             wallet_address=data.get("wallet_address", ""),
@@ -51,12 +50,12 @@ class UsdcBalance:
     usdc: Decimal
     usdc_units: int
     token: str = "USDC"
-    fetched_at: Optional[int] = None
+    fetched_at: int | None = None
     cached: bool = False
     raw: dict = field(default_factory=dict, repr=False, compare=False)
 
     @classmethod
-    def from_api(cls, data: dict) -> "UsdcBalance":
+    def from_api(cls, data: dict) -> UsdcBalance:
         return cls(
             user_id=data.get("user_id", ""),
             wallet_address=data.get("wallet_address", ""),
@@ -80,7 +79,7 @@ class Session:
     token_type: str = "Bearer"
 
     @classmethod
-    def from_api(cls, data: dict) -> "Session":
+    def from_api(cls, data: dict) -> Session:
         return cls(
             token=data["token"],
             user_id=data.get("user_id", ""),

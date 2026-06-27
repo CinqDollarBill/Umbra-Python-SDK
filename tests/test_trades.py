@@ -8,22 +8,58 @@ import pytest
 
 from umbra import NotFoundError
 
-MARKETS = [{"market_id": "m1", "title": "BTC up?", "status": "OPEN", "created_seq": 1,
-            "created_ts": 1, "category": "crypto", "polymarket_slug": "btc-updown-5m"}]
+MARKETS = [
+    {
+        "market_id": "m1",
+        "title": "BTC up?",
+        "status": "OPEN",
+        "created_seq": 1,
+        "created_ts": 1,
+        "category": "crypto",
+        "polymarket_slug": "btc-updown-5m",
+    }
+]
 
 # REST tape is oldest -> newest.
 TAPE = [
-    {"trade_id": "t1", "market_id": "m1", "price": "0.60", "quantity": 400,
-     "taker_book_side": "BID", "seq": 5, "ts": 1},
-    {"trade_id": "t2", "market_id": "m1", "price": "0.61", "quantity": 100,
-     "taker_book_side": "ASK", "seq": 6, "ts": 2},
+    {
+        "trade_id": "t1",
+        "market_id": "m1",
+        "price": "0.60",
+        "quantity": 400,
+        "taker_book_side": "BID",
+        "seq": 5,
+        "ts": 1,
+    },
+    {
+        "trade_id": "t2",
+        "market_id": "m1",
+        "price": "0.61",
+        "quantity": 100,
+        "taker_book_side": "ASK",
+        "seq": 6,
+        "ts": 2,
+    },
 ]
 
-FILLS = {"user_id": "u", "next_cursor": "", "fills": [
-    {"trade_id": "t1", "market_id": "m1", "price": "0.60", "quantity": 400,
-     "side": "BUY_YES", "role": "taker", "fee_or_rebate": "2.40",
-     "settlement_status": "PENDING", "seq": 5, "ts": 1},
-]}
+FILLS = {
+    "user_id": "u",
+    "next_cursor": "",
+    "fills": [
+        {
+            "trade_id": "t1",
+            "market_id": "m1",
+            "price": "0.60",
+            "quantity": 400,
+            "side": "BUY_YES",
+            "role": "taker",
+            "fee_or_rebate": "2.40",
+            "settlement_status": "PENDING",
+            "seq": 5,
+            "ts": 1,
+        },
+    ],
+}
 
 
 @pytest.fixture
@@ -37,8 +73,8 @@ def client(make_client, server):
 def test_public_tape_newest_first(client):
     trades = client.get_trades("btc-updown-5m")
     assert [t.trade_id for t in trades] == ["t2", "t1"]
-    assert trades[0].aggressor_side == "SELL"   # taker_book_side ASK
-    assert trades[1].aggressor_side == "BUY"    # taker_book_side BID
+    assert trades[0].aggressor_side == "SELL"  # taker_book_side ASK
+    assert trades[1].aggressor_side == "BUY"  # taker_book_side BID
     assert trades[1].price == Decimal("0.60")
 
 

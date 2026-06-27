@@ -10,9 +10,16 @@ from umbra import AuthenticationError, Client
 
 def test_siwe_signs_and_caches_session(make_client, server, account):
     client = make_client()
-    server.json_route("GET", "/wallet/balance", {
-        "user_id": account.address.lower(), "cash": "100", "reserved_margin": "0", "available": "100",
-    })
+    server.json_route(
+        "GET",
+        "/wallet/balance",
+        {
+            "user_id": account.address.lower(),
+            "cash": "100",
+            "reserved_margin": "0",
+            "available": "100",
+        },
+    )
 
     # First authed call triggers the nonce/verify dance.
     client.get_wallet_balance()
@@ -28,9 +35,16 @@ def test_siwe_signs_and_caches_session(make_client, server, account):
 
 def test_preminted_token_skips_siwe(server, fake_jwt):
     token = fake_jwt("user-x", "0xabc", exp=9999999999)
-    server.json_route("GET", "/wallet/balance", {
-        "user_id": "user-x", "cash": "1", "reserved_margin": "0", "available": "1",
-    })
+    server.json_route(
+        "GET",
+        "/wallet/balance",
+        {
+            "user_id": "user-x",
+            "cash": "1",
+            "reserved_margin": "0",
+            "available": "1",
+        },
+    )
     client = Client(api_url="http://t", transport=server.transport, token=token, backoff_factor=0.0)
     try:
         client.get_wallet_balance()
@@ -56,9 +70,15 @@ def test_401_triggers_single_reauth(make_client, server, account):
         state["calls"] += 1
         if state["calls"] == 1:
             return httpx.Response(401, json={"detail": "expired"})
-        return httpx.Response(200, json={
-            "user_id": account.address.lower(), "cash": "5", "reserved_margin": "0", "available": "5",
-        })
+        return httpx.Response(
+            200,
+            json={
+                "user_id": account.address.lower(),
+                "cash": "5",
+                "reserved_margin": "0",
+                "available": "5",
+            },
+        )
 
     bal = client.get_wallet_balance()
     assert bal.available == __import__("decimal").Decimal("5")

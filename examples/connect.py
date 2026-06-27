@@ -1,8 +1,8 @@
 """Connect to UMBRA and confirm authentication.
 
-    export UMBRA_API_URL="http://localhost:8000"
-    export UMBRA_PRIVATE_KEY="0x..."        # the wallet that signs the SIWE login
-    python examples/connect.py
+export UMBRA_API_URL="http://localhost:8000"
+export UMBRA_PRIVATE_KEY="0x..."        # the wallet that signs the SIWE login
+python examples/connect.py
 """
 
 import os

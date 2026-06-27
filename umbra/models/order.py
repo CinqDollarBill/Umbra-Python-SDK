@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import List, Optional
 
 from ..types.enums import OrderStatus
 from ..utils.money import to_optional_decimal
@@ -16,7 +15,7 @@ _TERMINAL = {OrderStatus.FILLED.value, OrderStatus.CANCELED.value, OrderStatus.R
 _OPEN = {OrderStatus.OPEN.value, OrderStatus.PARTIALLY_FILLED.value, OrderStatus.NEW.value}
 
 
-def _outcome_for_side(side: Optional[str]) -> Optional[str]:
+def _outcome_for_side(side: str | None) -> str | None:
     if not side:
         return None
     return "NO" if side.endswith("_NO") else "YES"
@@ -37,27 +36,27 @@ class Order:
     order_id: str
     market_id: str
     status: str
-    side: Optional[str] = None
+    side: str | None = None
     order_type: str = "LIMIT"
     time_in_force: str = "GTC"
-    price: Optional[Decimal] = None
+    price: Decimal | None = None
     size: int = 0
     filled_size: int = 0
     remaining_size: int = 0
-    reason: Optional[str] = None
+    reason: str | None = None
     post_only: bool = False
-    client_order_id: Optional[str] = None
-    fills: List[Fill] = field(default_factory=list)
-    created_ts: Optional[int] = None
+    client_order_id: str | None = None
+    fills: list[Fill] = field(default_factory=list)
+    created_ts: int | None = None
     raw: dict = field(default_factory=dict, repr=False, compare=False)
 
     @property
-    def outcome(self) -> Optional[str]:
+    def outcome(self) -> str | None:
         """``YES`` or ``NO`` token the order trades, derived from :attr:`side`."""
         return _outcome_for_side(self.side)
 
     @property
-    def action(self) -> Optional[str]:
+    def action(self) -> str | None:
         """``BUY`` or ``SELL``, derived from :attr:`side`."""
         if not self.side:
             return None
@@ -74,7 +73,7 @@ class Order:
         return self.status in _TERMINAL
 
     @classmethod
-    def from_api(cls, data: dict, *, client_order_id: Optional[str] = None) -> "Order":
+    def from_api(cls, data: dict, *, client_order_id: str | None = None) -> Order:
         """Parse a stored ``OrderRecord`` (GET /user/orders) into an :class:`Order`."""
         qty = int(data.get("quantity") or 0)
         filled = int(data.get("filled_quantity") or 0)
@@ -104,11 +103,11 @@ class Order:
         side: str,
         order_type: str,
         time_in_force: str,
-        price: Optional[Decimal],
+        price: Decimal | None,
         size: int,
         post_only: bool = False,
-        client_order_id: Optional[str] = None,
-    ) -> "Order":
+        client_order_id: str | None = None,
+    ) -> Order:
         """Build an :class:`Order` from a place-order engine result + the submitted params.
 
         The submit result carries the order id, status, reason and the executed legs, but

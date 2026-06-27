@@ -6,7 +6,6 @@ import asyncio
 import json
 
 import httpx
-import pytest
 import websockets
 
 from umbra.client import AsyncUmbraClient
@@ -16,8 +15,11 @@ def _client(ws_url: str) -> AsyncUmbraClient:
     # REST transport is unused by public WS subscriptions but required to build the client.
     transport = httpx.MockTransport(lambda req: httpx.Response(200, json=[]))
     return AsyncUmbraClient(
-        api_url="http://unused", ws_url=ws_url, transport=transport,
-        backoff_factor=0.0, backoff_max=0.0,
+        api_url="http://unused",
+        ws_url=ws_url,
+        transport=transport,
+        backoff_factor=0.0,
+        backoff_max=0.0,
     )
 
 
@@ -28,7 +30,9 @@ def run(coro):
 def test_nbbo_frame_dispatched():
     async def main():
         async def handler(ws):
-            await ws.send(json.dumps({"type": "nbbo", "data": {"market_id": "m1", "best_bid": "0.5"}}))
+            await ws.send(
+                json.dumps({"type": "nbbo", "data": {"market_id": "m1", "best_bid": "0.5"}})
+            )
             await asyncio.sleep(0.2)
 
         server = await websockets.serve(handler, "localhost", 0)
@@ -62,7 +66,9 @@ def test_reconnects_after_drop():
 
         async def handler(ws):
             state["connects"] += 1
-            await ws.send(json.dumps({"type": "nbbo", "data": {"market_id": "m1", "n": state["connects"]}}))
+            await ws.send(
+                json.dumps({"type": "nbbo", "data": {"market_id": "m1", "n": state["connects"]}})
+            )
             # Drop the connection immediately to force a reconnect.
 
         server = await websockets.serve(handler, "localhost", 0)

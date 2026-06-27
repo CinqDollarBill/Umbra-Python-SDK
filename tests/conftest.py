@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import base64
 import json
-from typing import Callable, Dict, List, Tuple
+from collections.abc import Callable
 
 import httpx
 import pytest
@@ -22,13 +22,14 @@ class MockServer:
     """A tiny routable mock backend with request recording."""
 
     def __init__(self) -> None:
-        self.routes: Dict[Tuple[str, str], Callable[[httpx.Request], httpx.Response]] = {}
-        self.requests: List[httpx.Request] = []
+        self.routes: dict[tuple[str, str], Callable[[httpx.Request], httpx.Response]] = {}
+        self.requests: list[httpx.Request] = []
 
     def route(self, method: str, path: str):
         def register(fn):
             self.routes[(method.upper(), path)] = fn
             return fn
+
         return register
 
     def json_route(self, method: str, path: str, payload, status: int = 200) -> None:
@@ -42,7 +43,9 @@ class MockServer:
         self.requests.append(request)
         handler = self.routes.get((request.method, request.url.path))
         if handler is None:
-            return httpx.Response(404, json={"detail": f"no route for {request.method} {request.url.path}"})
+            return httpx.Response(
+                404, json={"detail": f"no route for {request.method} {request.url.path}"}
+            )
         return handler(request)
 
     # Convenience accessors --------------------------------------------------
@@ -57,9 +60,11 @@ class MockServer:
 
 
 def _fake_jwt(user_id: str, addr: str, exp: int = 9999999999) -> str:
-    payload = base64.urlsafe_b64encode(
-        json.dumps({"sub": user_id, "addr": addr, "exp": exp}).encode()
-    ).decode().rstrip("=")
+    payload = (
+        base64.urlsafe_b64encode(json.dumps({"sub": user_id, "addr": addr, "exp": exp}).encode())
+        .decode()
+        .rstrip("=")
+    )
     return f"h.{payload}.s"
 
 
@@ -74,23 +79,36 @@ def install_auth(server: MockServer, address: str) -> None:
             f"umbra wants you to sign in with your Ethereum account:\n{addr}\n\n"
             f"Sign in.\n\nURI: x\nVersion: 1\nChain ID: 1\nNonce: n123\nIssued At: now"
         )
-        return httpx.Response(200, json={
-            "address": addr, "nonce": "n123", "message": msg,
-            "issued_at": 1, "expires_at": 9999999999,
-        })
+        return httpx.Response(
+            200,
+            json={
+                "address": addr,
+                "nonce": "n123",
+                "message": msg,
+                "issued_at": 1,
+                "expires_at": 9999999999,
+            },
+        )
 
     @server.route("POST", "/auth/verify")
     def _verify(req: httpx.Request) -> httpx.Response:
         from eth_account.messages import encode_defunct
+
         body = json.loads(req.content)
         recovered = Account.recover_message(
             encode_defunct(text=body["message"]), signature=body["signature"]
         ).lower()
         assert recovered == address.lower(), (recovered, address)
-        return httpx.Response(200, json={
-            "token": _fake_jwt(address, address), "token_type": "Bearer",
-            "expires_at": 9999999999, "user_id": address, "wallet_address": address,
-        })
+        return httpx.Response(
+            200,
+            json={
+                "token": _fake_jwt(address, address),
+                "token_type": "Bearer",
+                "expires_at": 9999999999,
+                "user_id": address,
+                "wallet_address": address,
+            },
+        )
 
 
 @pytest.fixture
@@ -107,7 +125,7 @@ def server():
 @pytest.fixture
 def make_client(server, account):
     """Factory: build a sync Client wired to the mock server (auth routes installed)."""
-    created: List[Client] = []
+    created: list[Client] = []
 
     def _make(*, authed: bool = True, **kwargs) -> Client:
         install_auth(server, account.address.lower())

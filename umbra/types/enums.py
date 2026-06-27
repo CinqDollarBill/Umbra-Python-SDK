@@ -7,7 +7,6 @@ and compare equal to the raw strings the API returns.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional, Union
 
 __all__ = [
     "Side",
@@ -112,8 +111,8 @@ _SIDE_TABLE = {
 
 
 def resolve_side(
-    side: Union[str, Side],
-    outcome: Optional[Union[str, Outcome]] = None,
+    side: str | Side,
+    outcome: str | Outcome | None = None,
 ) -> Side:
     """Resolve a friendly ``(side, outcome)`` into one of the four explicit :class:`Side` values.
 

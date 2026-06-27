@@ -12,8 +12,8 @@ expected.
 
 from __future__ import annotations
 
+import builtins
 import time
-from typing import List, Optional
 
 from ._http import AsyncHTTP
 from .exceptions import NotFoundError
@@ -30,7 +30,7 @@ class Markets:
 
     def __init__(self, http: AsyncHTTP) -> None:
         self._http = http
-        self._cache: List[Market] = []
+        self._cache: list[Market] = []
         self._cache_at: float = 0.0
 
     # ------------------------------------------------------------------ #
@@ -39,11 +39,11 @@ class Markets:
     async def list(
         self,
         *,
-        category: Optional[str] = None,
-        status: Optional[str] = None,
-        limit: Optional[int] = None,
+        category: str | None = None,
+        status: str | None = None,
+        limit: int | None = None,
         refresh: bool = False,
-    ) -> List[Market]:
+    ) -> builtins.list[Market]:
         """List markets, optionally filtered by ``category`` and/or ``status``.
 
         ``refresh=True`` bypasses the short internal cache.
@@ -59,14 +59,14 @@ class Markets:
             markets = markets[:limit]
         return markets
 
-    async def search(self, query: str, *, limit: Optional[int] = None) -> List[Market]:
+    async def search(self, query: str, *, limit: int | None = None) -> builtins.list[Market]:
         """Return markets whose title contains ``query`` (case-insensitive)."""
         q = (query or "").strip().lower()
         markets = await self._all()
         matches = [m for m in markets if q in (m.title or "").lower()] if q else markets
         return matches[:limit] if limit is not None else matches
 
-    async def categories(self) -> List[str]:
+    async def categories(self) -> builtins.list[str]:
         """Return the sorted set of distinct, non-empty market categories."""
         cats = {m.category for m in await self._all() if m.category}
         return sorted(cats)
@@ -112,7 +112,7 @@ class Markets:
         market = await self._find(ref)
         return market.market_id if market is not None else ref
 
-    async def _find(self, ref: str) -> Optional[Market]:
+    async def _find(self, ref: str) -> Market | None:
         wanted = (ref or "").strip().lower()
         if not wanted:
             return None
@@ -125,7 +125,7 @@ class Markets:
                 return m
         return None
 
-    async def _all(self, *, refresh: bool = False) -> List[Market]:
+    async def _all(self, *, refresh: bool = False) -> builtins.list[Market]:
         now = time.monotonic()
         if refresh or not self._cache or (now - self._cache_at) > _CACHE_TTL:
             data = await self._http.request("GET", "/markets")

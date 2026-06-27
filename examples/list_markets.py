@@ -1,6 +1,6 @@
 """List markets and the discovery helpers (no authentication required).
 
-    python examples/list_markets.py
+python examples/list_markets.py
 """
 
 import os

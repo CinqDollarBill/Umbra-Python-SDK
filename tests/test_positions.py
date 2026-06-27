@@ -6,17 +6,42 @@ from decimal import Decimal
 
 import pytest
 
-MARKETS = [{"market_id": "m1", "title": "BTC up?", "status": "OPEN", "created_seq": 1,
-            "created_ts": 1, "category": "crypto", "polymarket_slug": "btc-updown-5m"}]
+MARKETS = [
+    {
+        "market_id": "m1",
+        "title": "BTC up?",
+        "status": "OPEN",
+        "created_seq": 1,
+        "created_ts": 1,
+        "category": "crypto",
+        "polymarket_slug": "btc-updown-5m",
+    }
+]
 
 SNAPSHOT = {
     "positions": [
-        {"user_id": "u", "market_id": "m1", "net_qty": 1000, "avg_entry_price": "0.60",
-         "realized_pnl": "0", "fees_paid": "6", "rebates_received": "0",
-         "mark_price": "0.64", "unrealized_pnl": "40.0"},
-        {"user_id": "u", "market_id": "m2", "net_qty": -500, "avg_entry_price": "0.30",
-         "realized_pnl": "5", "fees_paid": "1", "rebates_received": "0",
-         "mark_price": "0.28", "unrealized_pnl": "10.0"},
+        {
+            "user_id": "u",
+            "market_id": "m1",
+            "net_qty": 1000,
+            "avg_entry_price": "0.60",
+            "realized_pnl": "0",
+            "fees_paid": "6",
+            "rebates_received": "0",
+            "mark_price": "0.64",
+            "unrealized_pnl": "40.0",
+        },
+        {
+            "user_id": "u",
+            "market_id": "m2",
+            "net_qty": -500,
+            "avg_entry_price": "0.30",
+            "realized_pnl": "5",
+            "fees_paid": "1",
+            "rebates_received": "0",
+            "mark_price": "0.28",
+            "unrealized_pnl": "10.0",
+        },
     ],
     "account": {"user_id": "u", "cash": "1000", "reserved_margin": "200", "available": "800"},
 }

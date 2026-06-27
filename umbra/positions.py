@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 from ._http import AsyncHTTP
 from .auth import Authenticator
 from .markets import Markets
@@ -21,12 +19,12 @@ class Positions:
         self._auth = auth
         self._markets = markets
 
-    async def get_positions(self) -> List[Position]:
+    async def get_positions(self) -> list[Position]:
         """Return all of the caller's open positions (with marked unrealized PnL)."""
         snapshot = await self._snapshot()
         return [Position.from_api(p) for p in snapshot.get("positions", [])]
 
-    async def get_position(self, market: str) -> Optional[Position]:
+    async def get_position(self, market: str) -> Position | None:
         """Return the caller's position in one market (by slug or id), or ``None`` if flat."""
         market_id = await self._markets.resolve_market_id(market)
         for p in await self.get_positions():

@@ -1,7 +1,7 @@
 """Place a market order (IOC) and print the executions.
 
-    export UMBRA_PRIVATE_KEY="0x..."
-    python examples/place_market_order.py <market-slug-or-id>
+export UMBRA_PRIVATE_KEY="0x..."
+python examples/place_market_order.py <market-slug-or-id>
 """
 
 import os

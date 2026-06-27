@@ -20,13 +20,17 @@ ws = client.websocket()
 
 
 def on_order(order):
-    print(f"ORDER {order['order_id']}: {order['status']} "
-          f"({order.get('filled_quantity')}/{order.get('quantity')})")
+    print(
+        f"ORDER {order['order_id']}: {order['status']} "
+        f"({order.get('filled_quantity')}/{order.get('quantity')})"
+    )
 
 
 def on_position(position):
-    print(f"POSITION {position['market_id']}: net_qty={position['net_qty']} "
-          f"uPnL={position.get('unrealized_pnl')}")
+    print(
+        f"POSITION {position['market_id']}: net_qty={position['net_qty']} "
+        f"uPnL={position.get('unrealized_pnl')}"
+    )
 
 
 def on_balance(account):

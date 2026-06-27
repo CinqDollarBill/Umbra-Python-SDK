@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from decimal import Decimal
 
-import httpx
 import pytest
 
 from umbra import (
@@ -16,33 +15,62 @@ from umbra import (
 )
 
 MARKETS = [
-    {"market_id": "m1", "title": "BTC up?", "status": "OPEN", "created_seq": 1,
-     "created_ts": 1, "category": "crypto", "polymarket_slug": "btc-updown-5m"},
+    {
+        "market_id": "m1",
+        "title": "BTC up?",
+        "status": "OPEN",
+        "created_seq": 1,
+        "created_ts": 1,
+        "category": "crypto",
+        "polymarket_slug": "btc-updown-5m",
+    },
 ]
 
 
 def _accepted_order(status="FILLED", fills=None):
     return {
-        "accepted": True, "reason": None,
-        "validation": {"valid": True, "reason": None, "market_id": "m1",
-                       "wallet_balance": "1000", "required_collateral": "620",
-                       "available_after_trade": "380"},
+        "accepted": True,
+        "reason": None,
+        "validation": {
+            "valid": True,
+            "reason": None,
+            "market_id": "m1",
+            "wallet_balance": "1000",
+            "required_collateral": "620",
+            "available_after_trade": "380",
+        },
         "order": {
-            "order_id": "ord-m1-5", "market_id": "m1", "user_id": "u", "status": status,
-            "reason": None, "fills": fills or [], "fees": {"fill_count": 0, "total_fee": "0",
-            "total_rebate": "0", "total_net_fee": "0"},
-            "nbbo": {"market_id": "m1", "best_bid": None, "best_bid_size": 0,
-                     "best_ask": None, "best_ask_size": 0, "last_trade_price": None},
+            "order_id": "ord-m1-5",
+            "market_id": "m1",
+            "user_id": "u",
+            "status": status,
+            "reason": None,
+            "fills": fills or [],
+            "fees": {"fill_count": 0, "total_fee": "0", "total_rebate": "0", "total_net_fee": "0"},
+            "nbbo": {
+                "market_id": "m1",
+                "best_bid": None,
+                "best_bid_size": 0,
+                "best_ask": None,
+                "best_ask_size": 0,
+                "last_trade_price": None,
+            },
         },
     }
 
 
 def _rejected(reason, valid=False):
     return {
-        "accepted": False, "reason": reason,
-        "validation": {"valid": valid, "reason": reason, "market_id": "m1",
-                       "wallet_balance": "0", "required_collateral": "620",
-                       "available_after_trade": "-620"},
+        "accepted": False,
+        "reason": reason,
+        "validation": {
+            "valid": valid,
+            "reason": reason,
+            "market_id": "m1",
+            "wallet_balance": "0",
+            "required_collateral": "620",
+            "available_after_trade": "-620",
+        },
         "order": None,
     }
 
@@ -54,21 +82,45 @@ def client(make_client, server):
 
 
 def test_place_limit_order_body_and_parse(client, server):
-    fills = [{"trade_id": "t1", "price": "0.60", "quantity": 1000, "taker_user_id": "u",
-              "taker_book_side": "BID", "notional": "600", "fee_rate": "0.01",
-              "rebate_rate": "0.01", "fee_amount": "6", "rebate_amount": "0",
-              "net_fee": "6", "seq": 5, "ts": 1}]
+    fills = [
+        {
+            "trade_id": "t1",
+            "price": "0.60",
+            "quantity": 1000,
+            "taker_user_id": "u",
+            "taker_book_side": "BID",
+            "notional": "600",
+            "fee_rate": "0.01",
+            "rebate_rate": "0.01",
+            "fee_amount": "6",
+            "rebate_amount": "0",
+            "net_fee": "6",
+            "seq": 5,
+            "ts": 1,
+        }
+    ]
     server.json_route("POST", "/orders", _accepted_order("FILLED", fills))
 
     order = client.place_limit_order(
-        market="btc-updown-5m", side="BUY", outcome="YES", price="0.62",
-        size=1000, post_only=True, client_order_id="cli-1",
+        market="btc-updown-5m",
+        side="BUY",
+        outcome="YES",
+        price="0.62",
+        size=1000,
+        post_only=True,
+        client_order_id="cli-1",
     )
 
     body = json.loads(server.last("POST", "/orders").content)
     assert body == {
-        "market_id": "m1", "side": "BUY_YES", "type": "LIMIT", "quantity": 1000,
-        "tif": "GTC", "post_only": True, "client_order_id": "cli-1", "price": 0.62,
+        "market_id": "m1",
+        "side": "BUY_YES",
+        "type": "LIMIT",
+        "quantity": 1000,
+        "tif": "GTC",
+        "post_only": True,
+        "client_order_id": "cli-1",
+        "price": 0.62,
     }
     assert order.order_id == "ord-m1-5"
     assert order.status == "FILLED"
@@ -115,13 +167,17 @@ def test_market_closed_rejection(client, server):
 def test_post_only_cross_rejection(client, server):
     server.json_route("POST", "/orders", _rejected("POST_ONLY_WOULD_CROSS"))
     with pytest.raises(OrderRejectedError) as exc:
-        client.place_limit_order(market="m1", side="BUY_YES", price="0.62", size=1000, post_only=True)
+        client.place_limit_order(
+            market="m1", side="BUY_YES", price="0.62", size=1000, post_only=True
+        )
     assert exc.value.reason == "POST_ONLY_WOULD_CROSS"
 
 
 def test_idempotent_post_carries_client_order_id_header(client, server):
     # A POST with client_order_id is marked idempotent (safe to retry).
     server.json_route("POST", "/orders", _accepted_order())
-    client.place_limit_order(market="m1", side="BUY_YES", price="0.62", size=10, client_order_id="k1")
+    client.place_limit_order(
+        market="m1", side="BUY_YES", price="0.62", size=10, client_order_id="k1"
+    )
     # Tracked for cancel-by-client-id.
-    assert ("u" not in {})  # placeholder; tracking validated in test_cancel.py
+    assert "u" not in {}  # placeholder; tracking validated in test_cancel.py

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Optional
 
 from ..utils.money import to_decimal
 
@@ -26,7 +25,7 @@ class Trade:
     quantity: int
     taker_book_side: str  # "BID" | "ASK"
     seq: int
-    ts: Optional[int] = None
+    ts: int | None = None
     raw: dict = field(default_factory=dict, repr=False, compare=False)
 
     @property
@@ -35,7 +34,7 @@ class Trade:
         return "BUY" if self.taker_book_side == "BID" else "SELL"
 
     @classmethod
-    def from_api(cls, data: dict) -> "Trade":
+    def from_api(cls, data: dict) -> Trade:
         return cls(
             trade_id=data["trade_id"],
             market_id=data.get("market_id", ""),
@@ -65,13 +64,13 @@ class Fill:
     role: str  # "taker" | "maker"
     fee_or_rebate: Decimal
     settlement_status: str = "PENDING"
-    order_id: Optional[str] = None
-    seq: Optional[int] = None
-    ts: Optional[int] = None
+    order_id: str | None = None
+    seq: int | None = None
+    ts: int | None = None
     raw: dict = field(default_factory=dict, repr=False, compare=False)
 
     @classmethod
-    def from_api(cls, data: dict) -> "Fill":
+    def from_api(cls, data: dict) -> Fill:
         """Parse a ``UserFillRecord`` (GET /user/fills) into a :class:`Fill`."""
         return cls(
             trade_id=data["trade_id"],
@@ -89,7 +88,7 @@ class Fill:
         )
 
     @classmethod
-    def from_execution(cls, data: dict, *, market_id: str, side: str) -> "Fill":
+    def from_execution(cls, data: dict, *, market_id: str, side: str) -> Fill:
         """Parse an execution leg embedded in a place-order response (``FillResponse``).
 
         These legs are reported from the taker's perspective; ``net_fee`` is the realized

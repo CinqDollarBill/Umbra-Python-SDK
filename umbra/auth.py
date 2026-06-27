@@ -28,7 +28,8 @@ import base64
 import binascii
 import json
 import time
-from typing import TYPE_CHECKING, Callable, Optional
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from .exceptions import AuthenticationError, ConfigurationError
 from .models.wallet import Session
@@ -50,20 +51,20 @@ class Authenticator:
 
     def __init__(
         self,
-        http: "AsyncHTTP",
+        http: AsyncHTTP,
         *,
-        wallet_address: Optional[str] = None,
-        private_key: Optional[str] = None,
-        signer: Optional[Signer] = None,
-        token: Optional[str] = None,
-        user_id: Optional[str] = None,
+        wallet_address: str | None = None,
+        private_key: str | None = None,
+        signer: Signer | None = None,
+        token: str | None = None,
+        user_id: str | None = None,
     ) -> None:
         self._http = http
         self._private_key = private_key
         self._signer = signer
         self._explicit_user_id = user_id
         self._lock = asyncio.Lock()
-        self._session: Optional[Session] = None
+        self._session: Session | None = None
 
         # Resolve the wallet address now (deriving it from the private key if needed) so
         # the user_id / private-feed key is available even before the first login.
@@ -97,11 +98,11 @@ class Authenticator:
         return bool(self._session or self._private_key or self._signer)
 
     @property
-    def wallet_address(self) -> Optional[str]:
+    def wallet_address(self) -> str | None:
         return self._wallet_address
 
     @property
-    def user_id(self) -> Optional[str]:
+    def user_id(self) -> str | None:
         """The account id, if known (from an active session, explicit value, or address)."""
         if self._explicit_user_id:
             return self._explicit_user_id
@@ -110,7 +111,7 @@ class Authenticator:
         return self._wallet_address
 
     @property
-    def session(self) -> Optional[Session]:
+    def session(self) -> Session | None:
         """The current cached session, if logged in."""
         return self._session
 
@@ -208,7 +209,7 @@ def _import_eth_account():
     except ImportError as exc:  # pragma: no cover - exercised only without the extra
         raise ConfigurationError(
             "local SIWE signing requires the 'eth-account' package. Install it with "
-            "`pip install \"umbra-sdk[wallet]\"`, or pass a custom signer=... / a "
+            '`pip install "umbra-sdk[wallet]"`, or pass a custom signer=... / a '
             "pre-minted token=..."
         ) from exc
     return Account, encode_defunct

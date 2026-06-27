@@ -9,12 +9,13 @@ list spanning as many underlying pages as needed.
 
 from __future__ import annotations
 
-from typing import Awaitable, Callable, List, Optional, Tuple, TypeVar
+from collections.abc import Awaitable, Callable
+from typing import TypeVar
 
 T = TypeVar("T")
 
 # A page fetcher: given a cursor and a page size, return (items, next_cursor).
-PageFetcher = Callable[[str, int], Awaitable[Tuple[List[T], str]]]
+PageFetcher = Callable[[str, int], Awaitable[tuple[list[T], str]]]
 
 __all__ = ["collect_pages", "PageFetcher"]
 
@@ -23,12 +24,12 @@ _MAX_PAGE = 1000
 
 
 async def collect_pages(
-    fetch: "PageFetcher[T]",
-    limit: Optional[int],
+    fetch: PageFetcher[T],
+    limit: int | None,
     *,
     start_cursor: str = "",
     max_page: int = _MAX_PAGE,
-) -> List[T]:
+) -> list[T]:
     """Accumulate items across cursor pages until ``limit`` is reached (or data runs out).
 
     Parameters
@@ -42,7 +43,7 @@ async def collect_pages(
     max_page:
         Per-request page-size ceiling enforced by the server.
     """
-    collected: List[T] = []
+    collected: list[T] = []
     cursor = start_cursor
     while True:
         remaining = max_page if limit is None else min(max_page, limit - len(collected))

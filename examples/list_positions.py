@@ -1,7 +1,7 @@
 """List open positions and the account balance.
 
-    export UMBRA_PRIVATE_KEY="0x..."
-    python examples/list_positions.py
+export UMBRA_PRIVATE_KEY="0x..."
+python examples/list_positions.py
 """
 
 import os

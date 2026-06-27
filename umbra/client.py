@@ -16,7 +16,7 @@ session.
 from __future__ import annotations
 
 import logging
-from typing import Any, List, Optional, Union
+from typing import Any
 
 import httpx
 
@@ -36,7 +36,7 @@ from .models.wallet import Session, UsdcBalance, WalletAssets
 from .orders import Orders, PriceLike
 from .positions import Positions
 from .trades import Trades
-from .types.enums import Category, Outcome, OrderType, Side, TimeInForce
+from .types.enums import Category, OrderType, Outcome, Side, TimeInForce
 from .utils._sync import LoopRunner
 from .websocket import AsyncWebSocketClient, WebSocketClient
 
@@ -60,24 +60,29 @@ class AsyncUmbraClient:
         self,
         api_url: str,
         *,
-        wallet_address: Optional[str] = None,
-        private_key: Optional[str] = None,
-        signer: Optional[Signer] = None,
-        token: Optional[str] = None,
-        user_id: Optional[str] = None,
-        ws_url: Optional[str] = None,
+        wallet_address: str | None = None,
+        private_key: str | None = None,
+        signer: Signer | None = None,
+        token: str | None = None,
+        user_id: str | None = None,
+        ws_url: str | None = None,
         timeout: float = 30.0,
         retries: int = 3,
         backoff_factor: float = 0.5,
         backoff_max: float = 10.0,
         debug: bool = False,
-        transport: Optional[httpx.AsyncBaseTransport] = None,
+        transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         if debug:
             _configure_debug_logging()
         self.config = ClientConfig(
-            api_url=api_url, ws_url=ws_url, timeout=timeout, retries=retries,
-            backoff_factor=backoff_factor, backoff_max=backoff_max, debug=debug,
+            api_url=api_url,
+            ws_url=ws_url,
+            timeout=timeout,
+            retries=retries,
+            backoff_factor=backoff_factor,
+            backoff_max=backoff_max,
+            debug=debug,
         )
         self._http = AsyncHTTP(self.config, transport=transport)
         self.auth = Authenticator(
@@ -105,7 +110,7 @@ class AsyncUmbraClient:
         """Close the underlying HTTP connection pool."""
         await self._http.aclose()
 
-    async def __aenter__(self) -> "AsyncUmbraClient":
+    async def __aenter__(self) -> AsyncUmbraClient:
         return self
 
     async def __aexit__(self, *exc: Any) -> None:
@@ -120,29 +125,32 @@ class AsyncUmbraClient:
         return await self._http.request("GET", "/auth/me", auth=True)
 
     @property
-    def user_id(self) -> Optional[str]:
+    def user_id(self) -> str | None:
         return self.auth.user_id
 
     @property
-    def session(self) -> Optional[Session]:
+    def session(self) -> Session | None:
         return self.auth.session
 
     # ------------------------------------------------------------------ #
     # Markets                                                            #
     # ------------------------------------------------------------------ #
     async def get_markets(
-        self, *, category: Optional[str] = None, status: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> List[Market]:
+        self,
+        *,
+        category: str | None = None,
+        status: str | None = None,
+        limit: int | None = None,
+    ) -> list[Market]:
         return await self.markets.list(category=category, status=status, limit=limit)
 
     async def get_market(self, slug: str, *, with_nbbo: bool = True) -> Market:
         return await self.markets.get(slug, with_nbbo=with_nbbo)
 
-    async def search_markets(self, query: str, *, limit: Optional[int] = None) -> List[Market]:
+    async def search_markets(self, query: str, *, limit: int | None = None) -> list[Market]:
         return await self.markets.search(query, limit=limit)
 
-    async def get_categories(self) -> List[str]:
+    async def get_categories(self) -> list[str]:
         return await self.markets.categories()
 
     async def get_market_orderbook(self, slug: str) -> OrderBook:
@@ -151,112 +159,169 @@ class AsyncUmbraClient:
     async def get_nbbo(self, slug: str) -> Nbbo:
         return await self.markets.nbbo(slug)
 
-    async def get_crypto_markets(self, *, limit: Optional[int] = None) -> List[Market]:
+    async def get_crypto_markets(self, *, limit: int | None = None) -> list[Market]:
         return await self.markets.list(category=Category.CRYPTO.value, limit=limit)
 
-    async def get_politics_markets(self, *, limit: Optional[int] = None) -> List[Market]:
+    async def get_politics_markets(self, *, limit: int | None = None) -> list[Market]:
         return await self.markets.list(category=Category.POLITICS.value, limit=limit)
 
-    async def get_sports_markets(self, *, limit: Optional[int] = None) -> List[Market]:
+    async def get_sports_markets(self, *, limit: int | None = None) -> list[Market]:
         return await self.markets.list(category=Category.SPORTS.value, limit=limit)
 
     # ------------------------------------------------------------------ #
     # Orders                                                             #
     # ------------------------------------------------------------------ #
     async def place_order(
-        self, *, market: str, side: Union[str, Side], size: int,
-        outcome: Optional[Union[str, Outcome]] = None, price: PriceLike = None,
-        order_type: Union[str, OrderType] = OrderType.LIMIT,
-        time_in_force: Union[str, TimeInForce] = TimeInForce.GTC,
-        post_only: bool = False, client_order_id: Optional[str] = None,
+        self,
+        *,
+        market: str,
+        side: str | Side,
+        size: int,
+        outcome: str | Outcome | None = None,
+        price: PriceLike = None,
+        order_type: str | OrderType = OrderType.LIMIT,
+        time_in_force: str | TimeInForce = TimeInForce.GTC,
+        post_only: bool = False,
+        client_order_id: str | None = None,
     ) -> Order:
         return await self.orders.place_order(
-            market=market, side=side, size=size, outcome=outcome, price=price,
-            order_type=order_type, time_in_force=time_in_force,
-            post_only=post_only, client_order_id=client_order_id,
+            market=market,
+            side=side,
+            size=size,
+            outcome=outcome,
+            price=price,
+            order_type=order_type,
+            time_in_force=time_in_force,
+            post_only=post_only,
+            client_order_id=client_order_id,
         )
 
     async def place_limit_order(
-        self, *, market: str, side: Union[str, Side], size: int, price: PriceLike,
-        outcome: Optional[Union[str, Outcome]] = None,
-        time_in_force: Union[str, TimeInForce] = TimeInForce.GTC,
-        post_only: bool = False, client_order_id: Optional[str] = None,
+        self,
+        *,
+        market: str,
+        side: str | Side,
+        size: int,
+        price: PriceLike,
+        outcome: str | Outcome | None = None,
+        time_in_force: str | TimeInForce = TimeInForce.GTC,
+        post_only: bool = False,
+        client_order_id: str | None = None,
     ) -> Order:
         return await self.orders.place_limit_order(
-            market=market, side=side, size=size, price=price, outcome=outcome,
-            time_in_force=time_in_force, post_only=post_only, client_order_id=client_order_id,
+            market=market,
+            side=side,
+            size=size,
+            price=price,
+            outcome=outcome,
+            time_in_force=time_in_force,
+            post_only=post_only,
+            client_order_id=client_order_id,
         )
 
     async def place_market_order(
-        self, *, market: str, side: Union[str, Side], size: int,
-        outcome: Optional[Union[str, Outcome]] = None,
-        time_in_force: Union[str, TimeInForce] = TimeInForce.IOC,
-        client_order_id: Optional[str] = None,
+        self,
+        *,
+        market: str,
+        side: str | Side,
+        size: int,
+        outcome: str | Outcome | None = None,
+        time_in_force: str | TimeInForce = TimeInForce.IOC,
+        client_order_id: str | None = None,
     ) -> Order:
         return await self.orders.place_market_order(
-            market=market, side=side, size=size, outcome=outcome,
-            time_in_force=time_in_force, client_order_id=client_order_id,
+            market=market,
+            side=side,
+            size=size,
+            outcome=outcome,
+            time_in_force=time_in_force,
+            client_order_id=client_order_id,
         )
 
     async def validate_order(
-        self, *, market: str, side: Union[str, Side], size: int,
-        outcome: Optional[Union[str, Outcome]] = None, price: PriceLike = None,
-        order_type: Union[str, OrderType] = OrderType.LIMIT,
-        time_in_force: Union[str, TimeInForce] = TimeInForce.GTC, post_only: bool = False,
+        self,
+        *,
+        market: str,
+        side: str | Side,
+        size: int,
+        outcome: str | Outcome | None = None,
+        price: PriceLike = None,
+        order_type: str | OrderType = OrderType.LIMIT,
+        time_in_force: str | TimeInForce = TimeInForce.GTC,
+        post_only: bool = False,
     ) -> dict:
         return await self.orders.validate_order(
-            market=market, side=side, size=size, outcome=outcome, price=price,
-            order_type=order_type, time_in_force=time_in_force, post_only=post_only,
+            market=market,
+            side=side,
+            size=size,
+            outcome=outcome,
+            price=price,
+            order_type=order_type,
+            time_in_force=time_in_force,
+            post_only=post_only,
         )
 
-    async def cancel_order(self, order_id: str, *, market: Optional[str] = None) -> Order:
+    async def cancel_order(self, order_id: str, *, market: str | None = None) -> Order:
         return await self.orders.cancel_order(order_id, market=market)
 
     async def cancel_order_by_client_id(
-        self, client_order_id: str, *, market: Optional[str] = None
+        self, client_order_id: str, *, market: str | None = None
     ) -> Order:
         return await self.orders.cancel_order_by_client_id(client_order_id, market=market)
 
-    async def cancel_all_orders(self, *, market: Optional[str] = None) -> List[Order]:
+    async def cancel_all_orders(self, *, market: str | None = None) -> list[Order]:
         return await self.orders.cancel_all(market=market)
 
     async def modify_order(
-        self, order_id: str, *, price: PriceLike = None, size: Optional[int] = None,
-        time_in_force: Optional[Union[str, TimeInForce]] = None,
-        post_only: Optional[bool] = None, client_order_id: Optional[str] = None,
-        market: Optional[str] = None,
+        self,
+        order_id: str,
+        *,
+        price: PriceLike = None,
+        size: int | None = None,
+        time_in_force: str | TimeInForce | None = None,
+        post_only: bool | None = None,
+        client_order_id: str | None = None,
+        market: str | None = None,
     ) -> Order:
         return await self.orders.modify_order(
-            order_id, price=price, size=size, time_in_force=time_in_force,
-            post_only=post_only, client_order_id=client_order_id, market=market,
+            order_id,
+            price=price,
+            size=size,
+            time_in_force=time_in_force,
+            post_only=post_only,
+            client_order_id=client_order_id,
+            market=market,
         )
 
     async def get_order(self, order_id: str) -> Order:
         return await self.orders.get_order(order_id)
 
     async def get_orders(
-        self, *, market: Optional[str] = None, open_only: bool = False,
-        limit: Optional[int] = 100,
-    ) -> List[Order]:
+        self,
+        *,
+        market: str | None = None,
+        open_only: bool = False,
+        limit: int | None = 100,
+    ) -> list[Order]:
         return await self.orders.get_orders(market=market, open_only=open_only, limit=limit)
 
     async def get_open_orders(
-        self, *, market: Optional[str] = None, limit: Optional[int] = 100
-    ) -> List[Order]:
+        self, *, market: str | None = None, limit: int | None = 100
+    ) -> list[Order]:
         return await self.orders.get_open_orders(market=market, limit=limit)
 
     async def get_order_history(
-        self, *, market: Optional[str] = None, limit: Optional[int] = 100
-    ) -> List[Order]:
+        self, *, market: str | None = None, limit: int | None = 100
+    ) -> list[Order]:
         return await self.orders.get_order_history(market=market, limit=limit)
 
     # ------------------------------------------------------------------ #
     # Positions                                                          #
     # ------------------------------------------------------------------ #
-    async def get_positions(self) -> List[Position]:
+    async def get_positions(self) -> list[Position]:
         return await self.positions.get_positions()
 
-    async def get_position(self, slug: str) -> Optional[Position]:
+    async def get_position(self, slug: str) -> Position | None:
         return await self.positions.get_position(slug)
 
     async def get_account(self) -> Account:
@@ -277,40 +342,53 @@ class AsyncUmbraClient:
     # ------------------------------------------------------------------ #
     # Trades / fills                                                     #
     # ------------------------------------------------------------------ #
-    async def get_trades(self, market: str, *, limit: int = 50) -> List[Trade]:
+    async def get_trades(self, market: str, *, limit: int = 50) -> list[Trade]:
         return await self.trades.get_trades(market, limit=limit)
 
     async def get_trade(self, trade_id: str, *, market: str) -> Trade:
         return await self.trades.get_trade(trade_id, market=market)
 
-    async def get_fills(
-        self, *, market: Optional[str] = None, limit: Optional[int] = 100
-    ) -> List[Fill]:
+    async def get_fills(self, *, market: str | None = None, limit: int | None = 100) -> list[Fill]:
         return await self.trades.get_fills(market=market, limit=limit)
 
     # ------------------------------------------------------------------ #
     # Fees                                                               #
     # ------------------------------------------------------------------ #
     async def get_fee_history(
-        self, *, market: Optional[str] = None, role: Optional[str] = None,
-        side: Optional[str] = None, start_ts: Optional[int] = None,
-        end_ts: Optional[int] = None, sort: str = "-ts", limit: Optional[int] = 100,
-    ) -> List[FeeEntry]:
+        self,
+        *,
+        market: str | None = None,
+        role: str | None = None,
+        side: str | None = None,
+        start_ts: int | None = None,
+        end_ts: int | None = None,
+        sort: str = "-ts",
+        limit: int | None = 100,
+    ) -> list[FeeEntry]:
         return await self.fees.get_fee_history(
-            market=market, role=role, side=side, start_ts=start_ts, end_ts=end_ts,
-            sort=sort, limit=limit,
+            market=market,
+            role=role,
+            side=side,
+            start_ts=start_ts,
+            end_ts=end_ts,
+            sort=sort,
+            limit=limit,
         )
 
     async def get_fee_summary(
-        self, *, market: Optional[str] = None, role: Optional[str] = None,
-        side: Optional[str] = None, start_ts: Optional[int] = None,
-        end_ts: Optional[int] = None,
+        self,
+        *,
+        market: str | None = None,
+        role: str | None = None,
+        side: str | None = None,
+        start_ts: int | None = None,
+        end_ts: int | None = None,
     ) -> FeeSummary:
         return await self.fees.get_fee_summary(
             market=market, role=role, side=side, start_ts=start_ts, end_ts=end_ts
         )
 
-    async def get_trade_fees(self, trade_id: str) -> List[FeeEntry]:
+    async def get_trade_fees(self, trade_id: str) -> list[FeeEntry]:
         return await self.fees.get_trade_fees(trade_id)
 
     # ------------------------------------------------------------------ #
@@ -347,7 +425,7 @@ class UmbraClient:
         finally:
             self._runner.close()
 
-    def __enter__(self) -> "UmbraClient":
+    def __enter__(self) -> UmbraClient:
         return self
 
     def __exit__(self, *exc: Any) -> None:
@@ -360,29 +438,32 @@ class UmbraClient:
         return self._run(self._aio.me())
 
     @property
-    def user_id(self) -> Optional[str]:
+    def user_id(self) -> str | None:
         return self._aio.user_id
 
     @property
-    def session(self) -> Optional[Session]:
+    def session(self) -> Session | None:
         return self._aio.session
 
     # ------------------------------------------------------------------ #
     # Markets                                                            #
     # ------------------------------------------------------------------ #
     def get_markets(
-        self, *, category: Optional[str] = None, status: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> List[Market]:
+        self,
+        *,
+        category: str | None = None,
+        status: str | None = None,
+        limit: int | None = None,
+    ) -> list[Market]:
         return self._run(self._aio.get_markets(category=category, status=status, limit=limit))
 
     def get_market(self, slug: str, *, with_nbbo: bool = True) -> Market:
         return self._run(self._aio.get_market(slug, with_nbbo=with_nbbo))
 
-    def search_markets(self, query: str, *, limit: Optional[int] = None) -> List[Market]:
+    def search_markets(self, query: str, *, limit: int | None = None) -> list[Market]:
         return self._run(self._aio.search_markets(query, limit=limit))
 
-    def get_categories(self) -> List[str]:
+    def get_categories(self) -> list[str]:
         return self._run(self._aio.get_categories())
 
     def get_market_orderbook(self, slug: str) -> OrderBook:
@@ -391,112 +472,177 @@ class UmbraClient:
     def get_nbbo(self, slug: str) -> Nbbo:
         return self._run(self._aio.get_nbbo(slug))
 
-    def get_crypto_markets(self, *, limit: Optional[int] = None) -> List[Market]:
+    def get_crypto_markets(self, *, limit: int | None = None) -> list[Market]:
         return self._run(self._aio.get_crypto_markets(limit=limit))
 
-    def get_politics_markets(self, *, limit: Optional[int] = None) -> List[Market]:
+    def get_politics_markets(self, *, limit: int | None = None) -> list[Market]:
         return self._run(self._aio.get_politics_markets(limit=limit))
 
-    def get_sports_markets(self, *, limit: Optional[int] = None) -> List[Market]:
+    def get_sports_markets(self, *, limit: int | None = None) -> list[Market]:
         return self._run(self._aio.get_sports_markets(limit=limit))
 
     # ------------------------------------------------------------------ #
     # Orders                                                             #
     # ------------------------------------------------------------------ #
     def place_order(
-        self, *, market: str, side: Union[str, Side], size: int,
-        outcome: Optional[Union[str, Outcome]] = None, price: PriceLike = None,
-        order_type: Union[str, OrderType] = OrderType.LIMIT,
-        time_in_force: Union[str, TimeInForce] = TimeInForce.GTC,
-        post_only: bool = False, client_order_id: Optional[str] = None,
+        self,
+        *,
+        market: str,
+        side: str | Side,
+        size: int,
+        outcome: str | Outcome | None = None,
+        price: PriceLike = None,
+        order_type: str | OrderType = OrderType.LIMIT,
+        time_in_force: str | TimeInForce = TimeInForce.GTC,
+        post_only: bool = False,
+        client_order_id: str | None = None,
     ) -> Order:
-        return self._run(self._aio.place_order(
-            market=market, side=side, size=size, outcome=outcome, price=price,
-            order_type=order_type, time_in_force=time_in_force,
-            post_only=post_only, client_order_id=client_order_id,
-        ))
+        return self._run(
+            self._aio.place_order(
+                market=market,
+                side=side,
+                size=size,
+                outcome=outcome,
+                price=price,
+                order_type=order_type,
+                time_in_force=time_in_force,
+                post_only=post_only,
+                client_order_id=client_order_id,
+            )
+        )
 
     def place_limit_order(
-        self, *, market: str, side: Union[str, Side], size: int, price: PriceLike,
-        outcome: Optional[Union[str, Outcome]] = None,
-        time_in_force: Union[str, TimeInForce] = TimeInForce.GTC,
-        post_only: bool = False, client_order_id: Optional[str] = None,
+        self,
+        *,
+        market: str,
+        side: str | Side,
+        size: int,
+        price: PriceLike,
+        outcome: str | Outcome | None = None,
+        time_in_force: str | TimeInForce = TimeInForce.GTC,
+        post_only: bool = False,
+        client_order_id: str | None = None,
     ) -> Order:
-        return self._run(self._aio.place_limit_order(
-            market=market, side=side, size=size, price=price, outcome=outcome,
-            time_in_force=time_in_force, post_only=post_only, client_order_id=client_order_id,
-        ))
+        return self._run(
+            self._aio.place_limit_order(
+                market=market,
+                side=side,
+                size=size,
+                price=price,
+                outcome=outcome,
+                time_in_force=time_in_force,
+                post_only=post_only,
+                client_order_id=client_order_id,
+            )
+        )
 
     def place_market_order(
-        self, *, market: str, side: Union[str, Side], size: int,
-        outcome: Optional[Union[str, Outcome]] = None,
-        time_in_force: Union[str, TimeInForce] = TimeInForce.IOC,
-        client_order_id: Optional[str] = None,
+        self,
+        *,
+        market: str,
+        side: str | Side,
+        size: int,
+        outcome: str | Outcome | None = None,
+        time_in_force: str | TimeInForce = TimeInForce.IOC,
+        client_order_id: str | None = None,
     ) -> Order:
-        return self._run(self._aio.place_market_order(
-            market=market, side=side, size=size, outcome=outcome,
-            time_in_force=time_in_force, client_order_id=client_order_id,
-        ))
+        return self._run(
+            self._aio.place_market_order(
+                market=market,
+                side=side,
+                size=size,
+                outcome=outcome,
+                time_in_force=time_in_force,
+                client_order_id=client_order_id,
+            )
+        )
 
     def validate_order(
-        self, *, market: str, side: Union[str, Side], size: int,
-        outcome: Optional[Union[str, Outcome]] = None, price: PriceLike = None,
-        order_type: Union[str, OrderType] = OrderType.LIMIT,
-        time_in_force: Union[str, TimeInForce] = TimeInForce.GTC, post_only: bool = False,
+        self,
+        *,
+        market: str,
+        side: str | Side,
+        size: int,
+        outcome: str | Outcome | None = None,
+        price: PriceLike = None,
+        order_type: str | OrderType = OrderType.LIMIT,
+        time_in_force: str | TimeInForce = TimeInForce.GTC,
+        post_only: bool = False,
     ) -> dict:
-        return self._run(self._aio.validate_order(
-            market=market, side=side, size=size, outcome=outcome, price=price,
-            order_type=order_type, time_in_force=time_in_force, post_only=post_only,
-        ))
+        return self._run(
+            self._aio.validate_order(
+                market=market,
+                side=side,
+                size=size,
+                outcome=outcome,
+                price=price,
+                order_type=order_type,
+                time_in_force=time_in_force,
+                post_only=post_only,
+            )
+        )
 
-    def cancel_order(self, order_id: str, *, market: Optional[str] = None) -> Order:
+    def cancel_order(self, order_id: str, *, market: str | None = None) -> Order:
         return self._run(self._aio.cancel_order(order_id, market=market))
 
     def cancel_order_by_client_id(
-        self, client_order_id: str, *, market: Optional[str] = None
+        self, client_order_id: str, *, market: str | None = None
     ) -> Order:
         return self._run(self._aio.cancel_order_by_client_id(client_order_id, market=market))
 
-    def cancel_all_orders(self, *, market: Optional[str] = None) -> List[Order]:
+    def cancel_all_orders(self, *, market: str | None = None) -> list[Order]:
         return self._run(self._aio.cancel_all_orders(market=market))
 
     def modify_order(
-        self, order_id: str, *, price: PriceLike = None, size: Optional[int] = None,
-        time_in_force: Optional[Union[str, TimeInForce]] = None,
-        post_only: Optional[bool] = None, client_order_id: Optional[str] = None,
-        market: Optional[str] = None,
+        self,
+        order_id: str,
+        *,
+        price: PriceLike = None,
+        size: int | None = None,
+        time_in_force: str | TimeInForce | None = None,
+        post_only: bool | None = None,
+        client_order_id: str | None = None,
+        market: str | None = None,
     ) -> Order:
-        return self._run(self._aio.modify_order(
-            order_id, price=price, size=size, time_in_force=time_in_force,
-            post_only=post_only, client_order_id=client_order_id, market=market,
-        ))
+        return self._run(
+            self._aio.modify_order(
+                order_id,
+                price=price,
+                size=size,
+                time_in_force=time_in_force,
+                post_only=post_only,
+                client_order_id=client_order_id,
+                market=market,
+            )
+        )
 
     def get_order(self, order_id: str) -> Order:
         return self._run(self._aio.get_order(order_id))
 
     def get_orders(
-        self, *, market: Optional[str] = None, open_only: bool = False,
-        limit: Optional[int] = 100,
-    ) -> List[Order]:
+        self,
+        *,
+        market: str | None = None,
+        open_only: bool = False,
+        limit: int | None = 100,
+    ) -> list[Order]:
         return self._run(self._aio.get_orders(market=market, open_only=open_only, limit=limit))
 
-    def get_open_orders(
-        self, *, market: Optional[str] = None, limit: Optional[int] = 100
-    ) -> List[Order]:
+    def get_open_orders(self, *, market: str | None = None, limit: int | None = 100) -> list[Order]:
         return self._run(self._aio.get_open_orders(market=market, limit=limit))
 
     def get_order_history(
-        self, *, market: Optional[str] = None, limit: Optional[int] = 100
-    ) -> List[Order]:
+        self, *, market: str | None = None, limit: int | None = 100
+    ) -> list[Order]:
         return self._run(self._aio.get_order_history(market=market, limit=limit))
 
     # ------------------------------------------------------------------ #
     # Positions                                                          #
     # ------------------------------------------------------------------ #
-    def get_positions(self) -> List[Position]:
+    def get_positions(self) -> list[Position]:
         return self._run(self._aio.get_positions())
 
-    def get_position(self, slug: str) -> Optional[Position]:
+    def get_position(self, slug: str) -> Position | None:
         return self._run(self._aio.get_position(slug))
 
     def get_account(self) -> Account:
@@ -517,40 +663,57 @@ class UmbraClient:
     # ------------------------------------------------------------------ #
     # Trades / fills                                                     #
     # ------------------------------------------------------------------ #
-    def get_trades(self, market: str, *, limit: int = 50) -> List[Trade]:
+    def get_trades(self, market: str, *, limit: int = 50) -> list[Trade]:
         return self._run(self._aio.get_trades(market, limit=limit))
 
     def get_trade(self, trade_id: str, *, market: str) -> Trade:
         return self._run(self._aio.get_trade(trade_id, market=market))
 
-    def get_fills(
-        self, *, market: Optional[str] = None, limit: Optional[int] = 100
-    ) -> List[Fill]:
+    def get_fills(self, *, market: str | None = None, limit: int | None = 100) -> list[Fill]:
         return self._run(self._aio.get_fills(market=market, limit=limit))
 
     # ------------------------------------------------------------------ #
     # Fees                                                               #
     # ------------------------------------------------------------------ #
     def get_fee_history(
-        self, *, market: Optional[str] = None, role: Optional[str] = None,
-        side: Optional[str] = None, start_ts: Optional[int] = None,
-        end_ts: Optional[int] = None, sort: str = "-ts", limit: Optional[int] = 100,
-    ) -> List[FeeEntry]:
-        return self._run(self._aio.get_fee_history(
-            market=market, role=role, side=side, start_ts=start_ts, end_ts=end_ts,
-            sort=sort, limit=limit,
-        ))
+        self,
+        *,
+        market: str | None = None,
+        role: str | None = None,
+        side: str | None = None,
+        start_ts: int | None = None,
+        end_ts: int | None = None,
+        sort: str = "-ts",
+        limit: int | None = 100,
+    ) -> list[FeeEntry]:
+        return self._run(
+            self._aio.get_fee_history(
+                market=market,
+                role=role,
+                side=side,
+                start_ts=start_ts,
+                end_ts=end_ts,
+                sort=sort,
+                limit=limit,
+            )
+        )
 
     def get_fee_summary(
-        self, *, market: Optional[str] = None, role: Optional[str] = None,
-        side: Optional[str] = None, start_ts: Optional[int] = None,
-        end_ts: Optional[int] = None,
+        self,
+        *,
+        market: str | None = None,
+        role: str | None = None,
+        side: str | None = None,
+        start_ts: int | None = None,
+        end_ts: int | None = None,
     ) -> FeeSummary:
-        return self._run(self._aio.get_fee_summary(
-            market=market, role=role, side=side, start_ts=start_ts, end_ts=end_ts
-        ))
+        return self._run(
+            self._aio.get_fee_summary(
+                market=market, role=role, side=side, start_ts=start_ts, end_ts=end_ts
+            )
+        )
 
-    def get_trade_fees(self, trade_id: str) -> List[FeeEntry]:
+    def get_trade_fees(self, trade_id: str) -> list[FeeEntry]:
         return self._run(self._aio.get_trade_fees(trade_id))
 
     # ------------------------------------------------------------------ #

@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import List, Optional
 
 from ..types.enums import MarketStatus
 from ..utils.money import to_optional_decimal
@@ -24,7 +23,7 @@ class Token:
 
     token_id: str
     outcome: str  # "YES" | "NO"
-    price: Optional[Decimal] = None
+    price: Decimal | None = None
 
 
 @dataclass(frozen=True)
@@ -41,25 +40,25 @@ class Market:
     market_id: str
     title: str
     status: str
-    slug: Optional[str] = None
-    category: Optional[str] = None
-    outcome: Optional[int] = None  # 1=YES, 0=NO once settled; None while open
-    group_id: Optional[str] = None
-    group_title: Optional[str] = None
-    outcome_label: Optional[str] = None
-    asset: Optional[str] = None
-    polymarket_slug: Optional[str] = None
-    kalshi_slug: Optional[str] = None
-    reference_price: Optional[Decimal] = None
-    settlement_price: Optional[Decimal] = None
-    settlement_window_start: Optional[str] = None
-    settlement_window_end: Optional[str] = None
-    created_ts: Optional[int] = None
-    tokens: List[Token] = field(default_factory=list)
+    slug: str | None = None
+    category: str | None = None
+    outcome: int | None = None  # 1=YES, 0=NO once settled; None while open
+    group_id: str | None = None
+    group_title: str | None = None
+    outcome_label: str | None = None
+    asset: str | None = None
+    polymarket_slug: str | None = None
+    kalshi_slug: str | None = None
+    reference_price: Decimal | None = None
+    settlement_price: Decimal | None = None
+    settlement_window_start: str | None = None
+    settlement_window_end: str | None = None
+    created_ts: int | None = None
+    tokens: list[Token] = field(default_factory=list)
     # Top-of-book, present only when fetched alongside the NBBO.
-    best_bid: Optional[Decimal] = None
-    best_ask: Optional[Decimal] = None
-    last_trade_price: Optional[Decimal] = None
+    best_bid: Decimal | None = None
+    best_ask: Decimal | None = None
+    last_trade_price: Decimal | None = None
     raw: dict = field(default_factory=dict, repr=False, compare=False)
 
     @property
@@ -77,7 +76,7 @@ class Market:
         )
 
     @property
-    def slugs(self) -> List[str]:
+    def slugs(self) -> list[str]:
         """All identifiers this market can be matched by (id + every known slug)."""
         candidates = [
             self.market_id,
@@ -86,14 +85,14 @@ class Market:
             self.kalshi_slug,
             _slugify(self.title),
         ]
-        seen: List[str] = []
+        seen: list[str] = []
         for c in candidates:
             if c and c not in seen:
                 seen.append(c)
         return seen
 
     @classmethod
-    def from_api(cls, data: dict) -> "Market":
+    def from_api(cls, data: dict) -> Market:
         """Parse a core ``MarketResponse`` dict into a :class:`Market`."""
         title = data.get("title", "")
         poly = data.get("polymarket_slug")
@@ -123,7 +122,7 @@ class Market:
             raw=data,
         )
 
-    def with_nbbo(self, nbbo) -> "Market":
+    def with_nbbo(self, nbbo) -> Market:
         """Return a copy enriched with top-of-book fields from an :class:`~umbra.models.common.Nbbo`."""
         from dataclasses import replace
 
@@ -137,9 +136,11 @@ class Market:
                 Token(
                     f"{self.market_id}-NO",
                     "NO",
-                    (Decimal("1") - (nbbo.last_trade_price or nbbo.mid))
-                    if (nbbo.last_trade_price or nbbo.mid) is not None
-                    else None,
+                    (
+                        (Decimal("1") - (nbbo.last_trade_price or nbbo.mid))
+                        if (nbbo.last_trade_price or nbbo.mid) is not None
+                        else None
+                    ),
                 ),
             ],
         )
