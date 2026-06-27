@@ -34,8 +34,8 @@ You only need this for the `private_key=` credential style. If you authenticate 
 ## Development install
 
 ```bash
-git clone https://github.com/CinqDollarBill/prediction-exchange
-cd prediction-exchange/sdk/python
+git clone https://github.com/CinqDollarBill/Umbra-Python-SDK
+cd Umbra-Python-SDK
 pip install -e ".[dev]"
 pytest
 ```

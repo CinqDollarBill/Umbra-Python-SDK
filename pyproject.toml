@@ -49,9 +49,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/CinqDollarBill/prediction-exchange"
-Documentation = "https://github.com/CinqDollarBill/prediction-exchange/tree/main/sdk/python/docs"
-Repository = "https://github.com/CinqDollarBill/prediction-exchange"
+Homepage = "https://github.com/CinqDollarBill/Umbra-Python-SDK"
+Documentation = "https://github.com/CinqDollarBill/Umbra-Python-SDK/tree/main/docs"
+Repository = "https://github.com/CinqDollarBill/Umbra-Python-SDK"
+Issues = "https://github.com/CinqDollarBill/Umbra-Python-SDK/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["umbra"]
