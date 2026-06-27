@@ -1,0 +1,78 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "umbra-sdk"
+version = "0.1.0"
+description = "Official Python SDK for the UMBRA dark-pool prediction-market exchange."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "UMBRA" }]
+keywords = [
+    "umbra",
+    "prediction-market",
+    "trading",
+    "dark-pool",
+    "exchange",
+    "siwe",
+    "ethereum",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+dependencies = [
+    "httpx>=0.24,<1",
+    "websockets>=11",
+]
+
+[project.optional-dependencies]
+# Local SIWE signing with a private key. Without this extra you can still authenticate
+# by supplying a pre-minted session token or a custom signer callback.
+wallet = ["eth-account>=0.10"]
+dev = [
+    "pytest>=7",
+    "eth-account>=0.10",
+    "black>=23",
+    "ruff>=0.1",
+    "mypy>=1.5",
+]
+
+[project.urls]
+Homepage = "https://github.com/CinqDollarBill/prediction-exchange"
+Documentation = "https://github.com/CinqDollarBill/prediction-exchange/tree/main/sdk/python/docs"
+Repository = "https://github.com/CinqDollarBill/prediction-exchange"
+
+[tool.hatch.build.targets.wheel]
+packages = ["umbra"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_unused_ignores = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
